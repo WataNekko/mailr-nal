@@ -1,0 +1,90 @@
+#!/usr/bin/env python3
+
+from contextlib import suppress
+import os
+
+try:
+    import asyncio
+    import logging
+    from aiosmtpd.controller import UnthreadedController
+    from aiosmtpd.handlers import Debugging
+    from aiosmtpd.smtp import AuthResult, LoginPassword
+    import ssl
+except ModuleNotFoundError:
+    raise SystemExit("Missing module\nRun:\npip install -r tests/requirements.txt")
+
+
+def main():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    # Configure logging
+    logging.basicConfig(level=logging.ERROR)
+    log = logging.getLogger("mail.log")
+
+    if os.getenv("DEBUG", "0") != "0":
+        log.setLevel(logging.DEBUG)
+        loop.set_debug(True)
+
+    # TLS
+    ssl_context = None
+    if (SSL_CERT := os.getenv("CERT")) and (SSL_KEY := os.getenv("KEY")):
+        # Load SSL certificate and key
+        ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        ssl_context.check_hostname = False
+        ssl_context.load_cert_chain(SSL_CERT, SSL_KEY)
+        log.debug("TLS enabled")
+
+    # Mock authentication
+    AUTH_CREDENTIAL: tuple[str, str]
+    if all(cred := (os.getenv("AUTH_USER"), os.getenv("AUTH_PASS"))):
+        AUTH_CREDENTIAL = cred
+    elif not any(cred):
+        AUTH_CREDENTIAL = "mock", "123456"
+    else:
+        raise SystemExit("Provide both AUTH_USER and AUTH_PASS env, or none.")
+
+    log.debug(f"Using authenticated credential: {AUTH_CREDENTIAL}")
+
+    def auth(server, session, envelope, mechanism, auth_data):
+        log.debug(f"auth_data={auth_data}")
+
+        if not isinstance(auth_data, LoginPassword):
+            return AuthResult(success=False, handled=False)
+
+        username = auth_data.login.decode()
+        password = auth_data.password.decode()
+
+        if (username, password) == AUTH_CREDENTIAL:
+            return AuthResult(success=True)
+        else:
+            return AuthResult(success=False, handled=False)
+
+    # Create SMTP server
+    HOST = "localhost"
+    PORT = int(os.getenv("PORT", 2525))
+    controller = UnthreadedController(
+        Debugging(),
+        hostname=HOST,
+        port=PORT,
+        loop=loop,
+        ssl_context=ssl_context,
+        auth_require_tls=not ssl_context,  # https://github.com/aio-libs/aiosmtpd/issues/281
+        authenticator=auth,
+    )
+
+    controller.begin()
+    print(f"SMTP server listening on {HOST}:{PORT}")
+
+    log.debug("Starting asyncio loop")
+    with suppress(KeyboardInterrupt):
+        loop.run_forever()
+    log.debug("Completed asyncio loop")
+
+    print("Stopping SMTP server")
+    controller.end()
+    loop.close()
+
+
+if __name__ == "__main__":
+    main()
