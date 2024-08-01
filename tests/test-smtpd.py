@@ -2,6 +2,7 @@
 
 from contextlib import suppress
 import os
+import sys
 
 try:
     import asyncio
@@ -14,7 +15,30 @@ except ModuleNotFoundError:
     raise SystemExit("Missing module\nRun:\npip install -r tests/requirements.txt")
 
 
+def print_usage():
+    program = os.path.basename(__file__)
+    usage = f"""Usage:
+    {program} [-h|--help]
+Env:
+    DEBUG       Enable debug log. Default 0.
+    PORT        The port to listen on. Default 2525.
+
+    CERT        The certificate file to use for TLS. Must be defined together with `KEY` to enable TLS.
+    KEY         The key file to use for TLS. Must be defined together with `CERT` to enable TLS.
+
+    AUTH_USER   Username of an authenticated credential to use for mocking auth.
+                Must be defined together with `AUTH_PASS`. Default "mock".
+    AUTH_PASS   Password of an authenticated credential to use for mocking auth.
+                Must be defined together with `AUTH_USER`. Default "123456".
+"""
+    print(usage)
+
+
 def main():
+    if len(sys.argv) > 1:
+        print_usage()
+        return
+
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
