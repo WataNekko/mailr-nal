@@ -7,3 +7,4 @@ description = "Minimal SMTP client on top of embedded-nal"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
+embedded-nal = "0.8.0"
