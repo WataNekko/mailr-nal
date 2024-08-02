@@ -3,7 +3,7 @@ name = "mailr-nal"
 version = "0.1.0"
 edition = "2021"
 authors = ["WataNekko <88185666+WataNekko@users.noreply.github.com>"]
-description = "SMTP client on top of embedded-nal"
+description = "Minimal SMTP client on top of embedded-nal"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
