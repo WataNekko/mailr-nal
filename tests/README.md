@@ -12,7 +12,7 @@ For convenience, a test server is included, using the python [`aiosmtpd`](https:
 cd tests
 
 # generate a TLS certificate to use, or use the generated one in `tests/data`
-openssl req -x509 -newkey rsa:2048 -keyout data/key.pem -out data/cert.pem -days 365 -noenc -batch
+openssl req -x509 -newkey rsa:2048 -keyout data/key.pem -out data/cert.pem -days 365 -noenc -subj '/CN=localhost'
 
 # run SMTP servers for testing
 PORT=5870 CERT=data/cert.pem KEY=data/key.pem test-smtpd.py # TLS
