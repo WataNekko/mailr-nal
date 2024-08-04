@@ -60,11 +60,12 @@ def main():
         log.debug("TLS enabled")
 
     # Mock authentication
-    AUTH_CREDENTIAL: tuple[str, str]
-    if all(cred := (os.getenv("AUTH_USER"), os.getenv("AUTH_PASS"))):
-        AUTH_CREDENTIAL = cred
-    elif not any(cred):
-        AUTH_CREDENTIAL = "mock", "123456"
+    AUTH_USER, AUTH_PASS = os.getenv("AUTH_USER"), os.getenv("AUTH_PASS")
+
+    if AUTH_USER and AUTH_PASS:
+        AUTH_CREDENTIAL = LoginPassword(AUTH_USER.encode(), AUTH_PASS.encode())
+    elif not AUTH_USER and not AUTH_PASS:
+        AUTH_CREDENTIAL = LoginPassword(b"mock", b"123456")
     else:
         raise SystemExit("Provide both AUTH_USER and AUTH_PASS env, or none.")
 
@@ -76,10 +77,7 @@ def main():
         if not isinstance(auth_data, LoginPassword):
             return AuthResult(success=False, handled=False)
 
-        username = auth_data.login.decode()
-        password = auth_data.password.decode()
-
-        if (username, password) == AUTH_CREDENTIAL:
+        if auth_data == AUTH_CREDENTIAL:
             return AuthResult(success=True)
         else:
             return AuthResult(success=False, handled=False)
