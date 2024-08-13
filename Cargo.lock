@@ -17,6 +17,7 @@ name = "mailr-nal"
 version = "0.1.0"
 dependencies = [
  "embedded-nal",
+ "std-embedded-nal",
 ]
 
 [[package]]
@@ -30,3 +31,12 @@ name = "no-std-net"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "43794a0ace135be66a25d3ae77d41b91615fb68ae937f904090203e81f755b65"
+
+[[package]]
+name = "std-embedded-nal"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "90ee4ceb784f3d22cdd0995125cbd3107a3d79e8c0ae7a153c1ab3fce8f99e61"
+dependencies = [
+ "embedded-nal",
+]
