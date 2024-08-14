@@ -31,9 +31,25 @@ where
     }
 }
 
+macro_rules! ready {
+    ($e:expr) => {{
+        use embedded_nal::nb;
+
+        match $e {
+            Err(nb::Error::WouldBlock) => return Err(nb::Error::WouldBlock),
+            Err(nb::Error::Other(e)) => Err(e),
+            Ok(o) => Ok(o),
+        }
+    }};
+}
+
+pub(crate) use ready;
+
 #[cfg(test)]
 mod test {
     use core::convert::Infallible;
+
+    use nb::block;
 
     use super::*;
 
@@ -257,5 +273,26 @@ mod test {
         let mut fut = process("01234567890123456789"); // len() == 20
         let res = fut.block(); // 20 ^ 20 = overflow
         assert_eq!(res, Err(ProcessingError));
+    }
+
+    #[test]
+    fn ready_macro() {
+        #[derive(Debug)]
+        struct Negative;
+
+        fn poll_inc(i: i32) -> nb::Result<i32, Negative> {
+            if i.is_negative() {
+                Err(nb::Error::Other(Negative))
+            } else {
+                Ok(i + 1)
+            }
+        }
+        fn poll_compute() -> nb::Result<i32, Infallible> {
+            let res = ready!(poll_inc(3)).expect("not negative");
+            Ok(res * 4)
+        }
+
+        let res = block!(poll_compute()).expect("infallible");
+        assert_eq!(res, 16);
     }
 }
