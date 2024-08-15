@@ -6,6 +6,7 @@ pub trait NbFuture {
 
     fn poll(&mut self) -> nb::Result<Self::Output, Self::Error>;
 
+    #[inline]
     fn block(&mut self) -> Result<Self::Output, Self::Error> {
         loop {
             match self.poll() {
