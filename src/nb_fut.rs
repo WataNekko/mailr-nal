@@ -2,7 +2,7 @@ use embedded_nal::nb;
 
 pub trait NbFuture {
     type Output;
-    type Error: core::fmt::Debug;
+    type Error;
 
     fn poll(&mut self) -> nb::Result<Self::Output, Self::Error>;
 
@@ -20,7 +20,6 @@ pub trait NbFuture {
 impl<T, O, E> NbFuture for T
 where
     T: FnMut() -> nb::Result<O, E>,
-    E: core::fmt::Debug,
 {
     type Output = O;
     type Error = E;
