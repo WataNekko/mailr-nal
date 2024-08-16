@@ -1,3 +1,5 @@
+use core::mem::ManuallyDrop;
+
 use embedded_nal::{nb, TcpClientStack};
 
 mod read;
@@ -20,6 +22,29 @@ where
 {
     pub fn new(stack: &'a mut T, socket: T::TcpSocket) -> Self {
         Self { stack, socket }
+    }
+
+    #[inline]
+    fn internal_close(&mut self) -> Result<(), T::Error> {
+        self.stack.close(
+            // SAFETY: socket is never used again after close so it would be safe to move
+            // out of the mut ref.
+            unsafe { core::ptr::read(&self.socket) },
+        )
+    }
+
+    pub fn close(self) -> Result<(), T::Error> {
+        let mut me = ManuallyDrop::new(self);
+        me.internal_close()
+    }
+}
+
+impl<'a, T> Drop for TcpStream<'a, T>
+where
+    T: TcpClientStack + 'a,
+{
+    fn drop(&mut self) {
+        let _ = self.internal_close();
     }
 }
 
