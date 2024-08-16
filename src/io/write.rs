@@ -23,7 +23,7 @@ pub struct BufWriter<'a, W>
 where
     W: Write,
 {
-    writer: W,
+    writer: &'a mut W,
     buffer: &'a mut [u8],
     filled: usize,
 }
@@ -32,7 +32,7 @@ impl<'a, W> BufWriter<'a, W>
 where
     W: Write,
 {
-    pub fn new(writer: W, buffer: &'a mut [u8]) -> Self {
+    pub fn new(writer: &'a mut W, buffer: &'a mut [u8]) -> Self {
         Self {
             writer,
             buffer,

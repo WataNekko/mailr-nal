@@ -12,7 +12,7 @@ pub struct BufReader<'a, R>
 where
     R: Read,
 {
-    reader: R,
+    reader: &'a mut R,
     buf: &'a mut [u8],
     filled: Range<usize>,
 }
@@ -21,7 +21,7 @@ impl<'a, R> BufReader<'a, R>
 where
     R: Read,
 {
-    pub fn new(reader: R, buf: &'a mut [u8]) -> Self {
+    pub fn new(reader: &'a mut R, buf: &'a mut [u8]) -> Self {
         Self {
             reader,
             buf,
