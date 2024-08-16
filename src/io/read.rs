@@ -2,7 +2,7 @@ use core::{ops::Range, str};
 
 use embedded_nal::nb::{self, block};
 
-pub trait Reader {
+pub trait Read {
     type Error;
 
     fn read(&mut self, buffer: &mut [u8]) -> nb::Result<usize, Self::Error>;
@@ -10,7 +10,7 @@ pub trait Reader {
 
 pub struct BufReader<'a, R>
 where
-    R: Reader,
+    R: Read,
 {
     reader: R,
     buf: &'a mut [u8],
@@ -19,7 +19,7 @@ where
 
 impl<'a, R> BufReader<'a, R>
 where
-    R: Reader,
+    R: Read,
 {
     pub fn new(reader: R, buf: &'a mut [u8]) -> Self {
         Self {
@@ -113,7 +113,7 @@ where
 #[derive(Debug, PartialEq)]
 pub enum BufReaderError<'a, R>
 where
-    R: Reader,
+    R: Read,
 {
     FullBuffer(&'a [u8]),
     ReaderError(R::Error),

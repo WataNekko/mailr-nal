@@ -2,7 +2,7 @@ use embedded_nal::nb;
 
 use crate::nb_fut::{ready, NbFuture};
 
-pub trait Writer {
+pub trait Write {
     type Error;
 
     fn write(&mut self, buffer: &[u8]) -> nb::Result<usize, Self::Error>;
@@ -21,7 +21,7 @@ pub trait Writer {
 
 pub struct BufWriter<'a, W>
 where
-    W: Writer,
+    W: Write,
 {
     writer: W,
     buffer: &'a mut [u8],
@@ -30,7 +30,7 @@ where
 
 impl<'a, W> BufWriter<'a, W>
 where
-    W: Writer,
+    W: Write,
 {
     pub fn new(writer: W, buffer: &'a mut [u8]) -> Self {
         Self {
@@ -108,7 +108,7 @@ where
 
 impl<'a, W> Drop for BufWriter<'a, W>
 where
-    W: Writer,
+    W: Write,
 {
     fn drop(&mut self) {
         let _ = self.flush().block();

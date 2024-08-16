@@ -23,7 +23,7 @@ where
     }
 }
 
-impl<'a, T> Reader for TcpStream<'a, T>
+impl<'a, T> Read for TcpStream<'a, T>
 where
     T: TcpClientStack + 'a,
 {
@@ -34,7 +34,7 @@ where
     }
 }
 
-impl<'a, T> Writer for TcpStream<'a, T>
+impl<'a, T> Write for TcpStream<'a, T>
 where
     T: TcpClientStack + 'a,
 {
