@@ -57,7 +57,7 @@ where
     ///
     /// If the buffer is full without having found the needed byte, `FullBuffer` error is returned with all
     /// the buffered data up to that point returned.
-    pub fn read_until<P>(&'a mut self, p: P) -> Result<&[u8], BufReaderError<R>>
+    pub fn read_until<P>(&'a mut self, p: P) -> Result<&[u8], BufReaderError<R::Error>>
     where
         P: FnMut(&u8) -> bool + Copy,
     {
@@ -95,7 +95,7 @@ where
     }
 
     #[inline]
-    pub fn read_str_until<P>(&'a mut self, p: P) -> Result<&str, BufReaderError<R>>
+    pub fn read_str_until<P>(&'a mut self, p: P) -> Result<&str, BufReaderError<R::Error>>
     where
         P: FnMut(&u8) -> bool + Copy,
     {
@@ -104,18 +104,15 @@ where
         })
     }
 
-    pub fn read_line(&'a mut self) -> Result<&str, BufReaderError<R>> {
+    pub fn read_line(&'a mut self) -> Result<&str, BufReaderError<R::Error>> {
         self.read_str_until(|&byte| byte == b'\n')
             .map(|line| line.trim_end_matches("\r\n"))
     }
 }
 
 #[derive(Debug, PartialEq)]
-pub enum BufReaderError<'a, R>
-where
-    R: Read,
-{
+pub enum BufReaderError<'a, E> {
     FullBuffer(&'a [u8]),
-    ReaderError(R::Error),
+    ReaderError(E),
     DecodeFailed(&'a [u8], str::Utf8Error),
 }
