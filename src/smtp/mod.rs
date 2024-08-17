@@ -1,6 +1,12 @@
-use embedded_nal::{nb::block, Dns, SocketAddr, TcpClientStack};
+mod response;
 
-use crate::auth::Credential;
+use embedded_nal::{nb::block, Dns, SocketAddr, TcpClientStack};
+use response::{ResponseError, ResponseParser};
+
+use crate::{
+    auth::Credential,
+    io::{BufReader, TcpStream},
+};
 
 pub struct SmtpClient;
 
@@ -35,37 +41,79 @@ where
         self
     }
 
+    // FIXME: Blocking for simplicity
     pub fn connect(
-        &mut self,
+        self,
         remote: impl Into<SocketAddr>,
-    ) -> Result<SmtpClientSession, T::Error> {
-        let mut sock = self.stack.socket()?;
-        let remote = remote.into();
-        block!(self.stack.connect(&mut sock, remote))?;
+    ) -> Result<SmtpClientSession<'a, T>, ConnectError<T::Error>> {
+        let Self {
+            stack,
+            buffer: buf,
+            auth,
+        } = self;
 
-        Ok(SmtpClientSession)
+        let mut stream =
+            TcpStream::new(stack, remote.into()).map_err(|e| ConnectError::IoError(e))?;
+
+        ResponseParser::new(&mut stream, buf).expect_code(b"220")?;
+
+        Ok(SmtpClientSession { stream, buf })
     }
 
+    // FIXME: Blocking for simplicity
     pub fn connect_with_hostname<D>(
-        &mut self,
+        self,
         dns: &mut D,
         hostname: &str,
         port: u16,
-    ) -> Result<SmtpClientSession, ConnectHostnameError<D::Error, T::Error>>
+    ) -> Result<SmtpClientSession<'a, T>, ConnectHostnameError<D::Error, T::Error>>
     where
         D: Dns,
     {
         let addr = block!(dns.get_host_by_name(hostname, embedded_nal::AddrType::Either))
             .map_err(|e| ConnectHostnameError::DnsError(e))?;
-        self.connect((addr, port))
-            .map_err(|e| ConnectHostnameError::ConnectError(e))
+
+        Ok(self.connect((addr, port))?)
     }
 }
 
 #[derive(Debug)]
-pub enum ConnectHostnameError<DErr, TErr> {
-    DnsError(DErr),
-    ConnectError(TErr),
+pub enum ConnectError<E> {
+    IoError(E),
+    NoMem,
+    AuthFailed,
+    AuthUnsupported,
+    UnexpectedResponse,
 }
 
-pub struct SmtpClientSession;
+impl<'a, E> From<ResponseError<'a, E>> for ConnectError<E> {
+    fn from(value: ResponseError<'a, E>) -> Self {
+        match value {
+            ResponseError::ReplyCodeError(_) | ResponseError::FormatError => {
+                Self::UnexpectedResponse
+            }
+            ResponseError::ReadError(e) => Self::IoError(e),
+            ResponseError::NoMem => Self::NoMem,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum ConnectHostnameError<DE, E> {
+    DnsError(DE),
+    ConnectError(ConnectError<E>),
+}
+
+impl<DE, E> From<ConnectError<E>> for ConnectHostnameError<DE, E> {
+    fn from(value: ConnectError<E>) -> Self {
+        Self::ConnectError(value)
+    }
+}
+
+pub struct SmtpClientSession<'a, T>
+where
+    T: TcpClientStack,
+{
+    stream: TcpStream<'a, T>,
+    buf: &'a [u8],
+}
