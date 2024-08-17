@@ -267,11 +267,11 @@ mod test {
             }
         }
 
-        let mut fut = process("hello"); // len() == 5
+        let fut = process("hello"); // len() == 5
         let res = fut.block(); // (5 ^ 5) ^ 2 - (5 ^ 5) == 9762500
         assert_eq!(res, Ok(9762500_f32));
 
-        let mut fut = process("01234567890123456789"); // len() == 20
+        let fut = process("01234567890123456789"); // len() == 20
         let res = fut.block(); // 20 ^ 20 = overflow
         assert_eq!(res, Err(ProcessingError));
     }
