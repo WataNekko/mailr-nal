@@ -1,7 +1,5 @@
 use core::{fmt::Debug, str};
 
-use embedded_nal::TcpError;
-
 use crate::io::{BufReader, BufReaderError, Read};
 
 pub struct ResponseParser<'a, R>(BufReader<'a, R>)

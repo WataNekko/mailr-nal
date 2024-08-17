@@ -5,10 +5,7 @@ use core::fmt::Debug;
 use embedded_nal::{nb::block, AddrType, Dns, SocketAddr, TcpClientStack, TcpError};
 use response::{ResponseError, ResponseParser};
 
-use crate::{
-    auth::Credential,
-    io::{BufReader, TcpStream},
-};
+use crate::{auth::Credential, io::TcpStream};
 
 pub struct SmtpClient;
 
