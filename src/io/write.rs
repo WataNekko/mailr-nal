@@ -59,6 +59,7 @@ where
         &'a mut self,
         data: &'a [u8],
     ) -> impl NbFuture<Output = (), Error = W::Error> + 'a {
+        // FIXME: Expose nb async API but blocking impl for now for simplicity
         move || {
             if self.filled + data.len() > self.buffer.len() {
                 self.flush().block()?;

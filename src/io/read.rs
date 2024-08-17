@@ -45,8 +45,8 @@ where
     }
 
     /// Fill the buffer with more data by reading from the reader, then return the newly read bytes.
-    fn fill_buf(&mut self) -> Result<&[u8], R::Error> {
-        let amt = block!(self.reader.read(&mut self.buf[self.filled.end..]))?;
+    fn fill_buf(&mut self) -> nb::Result<&[u8], R::Error> {
+        let amt = self.reader.read(&mut self.buf[self.filled.end..])?;
         let filled = &self.buf[self.filled.end..self.filled.end + amt];
         self.filled.end += amt;
         Ok(filled)
@@ -57,6 +57,8 @@ where
     ///
     /// If the buffer is full without having found the needed byte, `FullBuffer` error is returned with all
     /// the buffered data up to that point returned.
+    ///
+    // FIXME: Blocking for now for simplicity
     pub fn read_until<P>(&'a mut self, p: P) -> Result<&[u8], BufReaderError<R::Error>>
     where
         P: FnMut(&u8) -> bool + Copy,
@@ -83,9 +85,8 @@ where
 
             checked_block_size = self.filled.len();
 
-            unchecked_block = self
-                .fill_buf()
-                .map_err(|e| BufReaderError::ReaderError(e))?;
+            unchecked_block =
+                block!(self.fill_buf()).map_err(|e| BufReaderError::ReaderError(e))?;
             if unchecked_block.is_empty() {
                 // because we moved the filled block to front earlier, leaving space to be filled,
                 // if we get nothing back after a read, EOF must have occurred.
@@ -94,6 +95,7 @@ where
         }
     }
 
+    // FIXME: Blocking for now for simplicity
     #[inline]
     pub fn read_str_until<P>(&'a mut self, p: P) -> Result<&str, BufReaderError<R::Error>>
     where
@@ -104,6 +106,7 @@ where
         })
     }
 
+    // FIXME: Blocking for now for simplicity
     pub fn read_line(&'a mut self) -> Result<&str, BufReaderError<R::Error>> {
         self.read_str_until(|&byte| byte == b'\n')
             .map(|line| line.trim_end_matches("\r\n"))
