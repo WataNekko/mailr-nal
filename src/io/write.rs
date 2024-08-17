@@ -1,21 +1,17 @@
-use embedded_nal::nb;
-
-use crate::nb_fut::{ready, NbFuture};
+use embedded_nal::nb::{self, block};
 
 pub trait Write {
     type Error;
 
     fn write(&mut self, buffer: &[u8]) -> nb::Result<usize, Self::Error>;
 
-    #[inline]
-    fn write_all(&mut self, mut buffer: &[u8]) -> impl NbFuture<Output = (), Error = Self::Error> {
-        move || {
-            while !buffer.is_empty() {
-                let written = ready!(self.write(buffer))?;
-                buffer = &buffer[written..];
-            }
-            Ok(())
+    // FIXME: Blocking for simplicity
+    fn write_all(&mut self, mut buffer: &[u8]) -> Result<(), Self::Error> {
+        while !buffer.is_empty() {
+            let written = block!(self.write(buffer))?;
+            buffer = &buffer[written..];
         }
+        Ok(())
     }
 }
 
@@ -40,14 +36,11 @@ where
         }
     }
 
-    pub fn flush(&mut self) -> impl NbFuture<Output = (), Error = W::Error> + '_ {
-        let mut fut = self.writer.write_all(&self.buffer[..self.filled]);
-        let filled = &mut self.filled;
-        move || {
-            fut.poll()?;
-            *filled = 0;
-            Ok(())
-        }
+    // FIXME: Blocking for now for simplicity
+    pub fn flush(&mut self) -> Result<(), W::Error> {
+        self.writer.write_all(&self.buffer[..self.filled])?;
+        self.filled = 0;
+        Ok(())
     }
 
     fn write_to_buffer(&mut self, data: &[u8]) {
@@ -55,23 +48,18 @@ where
         self.filled += data.len();
     }
 
-    pub fn write(
-        &'a mut self,
-        data: &'a [u8],
-    ) -> impl NbFuture<Output = (), Error = W::Error> + 'a {
-        // FIXME: Expose nb async API but blocking impl for now for simplicity
-        move || {
-            if self.filled + data.len() > self.buffer.len() {
-                self.flush().block()?;
-            }
-
-            if data.len() >= self.buffer.len() {
-                self.writer.write_all(data).block()?;
-            } else {
-                self.write_to_buffer(data);
-            }
-            Ok(())
+    // FIXME: Blocking for now for simplicity
+    pub fn write(&mut self, data: &[u8]) -> Result<(), W::Error> {
+        if self.filled + data.len() > self.buffer.len() {
+            self.flush()?;
         }
+
+        if data.len() >= self.buffer.len() {
+            self.writer.write_all(data)?;
+        } else {
+            self.write_to_buffer(data);
+        }
+        Ok(())
     }
 }
 
@@ -80,6 +68,6 @@ where
     W: Write,
 {
     fn drop(&mut self) {
-        let _ = self.flush().block();
+        let _ = self.flush();
     }
 }
