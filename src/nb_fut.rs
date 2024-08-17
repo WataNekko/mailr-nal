@@ -30,6 +30,7 @@ where
     }
 }
 
+#[allow(unused)]
 macro_rules! ready {
     ($e:expr) => {{
         use embedded_nal::nb;
@@ -42,6 +43,7 @@ macro_rules! ready {
     }};
 }
 
+#[allow(unused)]
 pub(crate) use ready;
 
 #[cfg(test)]
