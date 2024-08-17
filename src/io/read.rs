@@ -59,7 +59,7 @@ where
     /// the buffered data up to that point returned.
     ///
     // FIXME: Blocking for now for simplicity
-    pub fn read_until<P>(&'a mut self, p: P) -> Result<&[u8], BufReaderError<R::Error>>
+    pub fn read_until<P>(&mut self, p: P) -> Result<&[u8], BufReaderError<R::Error>>
     where
         P: FnMut(&u8) -> bool + Copy,
     {
@@ -97,7 +97,7 @@ where
 
     // FIXME: Blocking for now for simplicity
     #[inline]
-    pub fn read_str_until<P>(&'a mut self, p: P) -> Result<&str, BufReaderError<R::Error>>
+    pub fn read_str_until<P>(&mut self, p: P) -> Result<&str, BufReaderError<R::Error>>
     where
         P: FnMut(&u8) -> bool + Copy,
     {
@@ -107,7 +107,7 @@ where
     }
 
     // FIXME: Blocking for now for simplicity
-    pub fn read_line(&'a mut self) -> Result<&str, BufReaderError<R::Error>> {
+    pub fn read_line(&mut self) -> Result<&str, BufReaderError<R::Error>> {
         self.read_str_until(|&byte| byte == b'\n')
             .map(|line| line.trim_end_matches("\r\n"))
     }
