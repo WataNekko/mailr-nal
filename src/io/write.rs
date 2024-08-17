@@ -71,38 +71,6 @@ where
             }
             Ok(())
         }
-        // enum State<F, W> {
-        //     Start,
-        //     FlushFut(F),
-        //     Write,
-        //     WriteFut(W),
-        // }
-        // let mut state = State::Start;
-
-        // move || loop {
-        //     match state {
-        //         State::Start => {
-        //             state = if self.filled + data.len() > self.buffer.len() {
-        //                 State::FlushFut(self.flush())
-        //             } else {
-        //                 State::Write
-        //             };
-        //         }
-        //         State::FlushFut(ref mut f) => {
-        //             f.poll()?;
-        //             state = State::Write;
-        //         }
-        //         State::Write => {
-        //             if data.len() >= self.buffer.len() {
-        //                 state = State::WriteFut(self.writer.write_all(data));
-        //             } else {
-        //                 self.write_to_buffer(data);
-        //                 return Ok(());
-        //             }
-        //         }
-        //         State::WriteFut(ref mut w) => w.poll()?,
-        //     }
-        // }
     }
 }
 
