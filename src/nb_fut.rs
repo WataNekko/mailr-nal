@@ -6,10 +6,13 @@ pub trait NbFuture {
 
     fn poll(&mut self) -> nb::Result<Self::Output, Self::Error>;
 
-    /// Block by busy waiting. May change to run a user-provided blocking code inbetween
-    /// to utilize OS/hardware blocking.
+    /// Block by busy waiting.
+    // FIXME: May change to run a user-provided blocking code inbetween to utilize OS/hardware blocking.
     #[inline]
-    fn block(&mut self) -> Result<Self::Output, Self::Error> {
+    fn block(mut self) -> Result<Self::Output, Self::Error>
+    where
+        Self: Sized,
+    {
         block!(self.poll())
     }
 }
