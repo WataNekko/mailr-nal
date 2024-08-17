@@ -1,4 +1,4 @@
-use embedded_nal::nb;
+use embedded_nal::nb::{self, block};
 
 pub trait NbFuture {
     type Output;
@@ -6,15 +6,11 @@ pub trait NbFuture {
 
     fn poll(&mut self) -> nb::Result<Self::Output, Self::Error>;
 
+    /// Block by busy waiting. May change to run a user-provided blocking code inbetween
+    /// to utilize OS/hardware blocking.
     #[inline]
     fn block(&mut self) -> Result<Self::Output, Self::Error> {
-        loop {
-            match self.poll() {
-                Err(nb::Error::WouldBlock) => {} // busy wait until not blocked
-                Err(nb::Error::Other(e)) => return Err(e),
-                Ok(o) => return Ok(o),
-            }
-        }
+        block!(self.poll())
     }
 }
 
@@ -205,7 +201,7 @@ mod test {
     }
 
     #[test]
-    fn chaining_multi_state_fut() {
+    fn chaining_multi_state_fut_with_blocking() {
         #[derive(Debug, PartialEq)]
         struct ProcessingError;
 
