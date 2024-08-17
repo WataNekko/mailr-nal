@@ -1,7 +1,9 @@
+use core::fmt::Debug;
+
 use embedded_nal::nb::{self, block};
 
 pub trait Write {
-    type Error;
+    type Error: Debug;
 
     fn write(&mut self, buffer: &[u8]) -> nb::Result<usize, Self::Error>;
 

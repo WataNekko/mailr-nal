@@ -1,9 +1,9 @@
-use core::{ops::Range, str};
+use core::{fmt::Debug, ops::Range, str};
 
 use embedded_nal::nb::{self, block};
 
 pub trait Read {
-    type Error;
+    type Error: Debug;
 
     fn read(&mut self, buffer: &mut [u8]) -> nb::Result<usize, Self::Error>;
 }
@@ -114,7 +114,10 @@ where
 }
 
 #[derive(Debug, PartialEq)]
-pub enum BufReaderError<'a, E> {
+pub enum BufReaderError<'a, E>
+where
+    E: Debug,
+{
     FullBuffer(&'a [u8]),
     ReaderError(E),
     DecodeFailed(&'a [u8], str::Utf8Error),

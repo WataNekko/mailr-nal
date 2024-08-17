@@ -2,7 +2,7 @@ mod response;
 
 use core::fmt::Debug;
 
-use embedded_nal::{nb::block, Dns, SocketAddr, TcpClientStack};
+use embedded_nal::{nb::block, AddrType, Dns, SocketAddr, TcpClientStack, TcpError};
 use response::{ResponseError, ResponseParser};
 
 use crate::{
@@ -72,7 +72,7 @@ where
     where
         D: Dns,
     {
-        let addr = block!(dns.get_host_by_name(hostname, embedded_nal::AddrType::Either))
+        let addr = block!(dns.get_host_by_name(hostname, AddrType::Either))
             .map_err(|e| ConnectHostnameError::DnsError(e))?;
 
         Ok(self.connect((addr, port))?)
@@ -80,7 +80,10 @@ where
 }
 
 #[derive(Debug)]
-pub enum ConnectError<E> {
+pub enum ConnectError<E>
+where
+    E: TcpError,
+{
     IoError(E),
     NoMem,
     AuthFailed,
@@ -88,7 +91,10 @@ pub enum ConnectError<E> {
     UnexpectedResponse,
 }
 
-impl<'a, E> From<ResponseError<'a, E>> for ConnectError<E> {
+impl<'a, E> From<ResponseError<'a, E>> for ConnectError<E>
+where
+    E: TcpError,
+{
     fn from(value: ResponseError<'a, E>) -> Self {
         match value {
             ResponseError::ReplyCodeError(_) | ResponseError::FormatError => {
@@ -101,12 +107,20 @@ impl<'a, E> From<ResponseError<'a, E>> for ConnectError<E> {
 }
 
 #[derive(Debug)]
-pub enum ConnectHostnameError<DE, E> {
+pub enum ConnectHostnameError<DE, E>
+where
+    DE: Debug,
+    E: TcpError,
+{
     DnsError(DE),
     ConnectError(ConnectError<E>),
 }
 
-impl<DE, E> From<ConnectError<E>> for ConnectHostnameError<DE, E> {
+impl<DE, E> From<ConnectError<E>> for ConnectHostnameError<DE, E>
+where
+    DE: Debug,
+    E: TcpError,
+{
     fn from(value: ConnectError<E>) -> Self {
         Self::ConnectError(value)
     }

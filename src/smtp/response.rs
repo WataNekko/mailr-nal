@@ -1,4 +1,6 @@
-use core::str;
+use core::{fmt::Debug, str};
+
+use embedded_nal::TcpError;
 
 use crate::io::{BufReader, BufReaderError, Read};
 
@@ -59,14 +61,20 @@ where
     }
 }
 
-pub enum ResponseError<'a, E> {
+pub enum ResponseError<'a, E>
+where
+    E: Debug,
+{
     ReplyCodeError(&'a [u8]),
     ReadError(E),
     NoMem,
     FormatError,
 }
 
-impl<'a, E> From<BufReaderError<'a, E>> for ResponseError<'a, E> {
+impl<'a, E> From<BufReaderError<'a, E>> for ResponseError<'a, E>
+where
+    E: Debug,
+{
     fn from(value: BufReaderError<'a, E>) -> Self {
         match value {
             BufReaderError::FullBuffer(_) => Self::NoMem,
