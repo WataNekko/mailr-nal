@@ -1,5 +1,7 @@
 mod response;
 
+use core::fmt::Debug;
+
 use embedded_nal::{nb::block, Dns, SocketAddr, TcpClientStack};
 use response::{ResponseError, ResponseParser};
 
@@ -116,4 +118,13 @@ where
 {
     stream: TcpStream<'a, T>,
     buf: &'a [u8],
+}
+
+impl<'a, T> Debug for SmtpClientSession<'a, T>
+where
+    T: TcpClientStack,
+{
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "SmtpClientSession")
+    }
 }

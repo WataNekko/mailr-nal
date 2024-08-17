@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod smtp {
-    use mailr_nal::{auth::Credential, SmtpClient};
+    use mailr_nal::{auth::Credential, ConnectError, SmtpClient};
 
     #[test]
     fn connect_no_auth() {
@@ -22,8 +22,9 @@ mod smtp {
             .connect(([127, 0, 0, 1], 2525));
 
         assert!(
-            !result.is_ok(),
-            "Connect should fail if user expects auth but server cannot provide",
+            matches!(result, Err(ConnectError::AuthUnsupported)),
+            "Connect should fail if user expects auth but server cannot provide. Got: {:?}",
+            result,
         );
     }
 
