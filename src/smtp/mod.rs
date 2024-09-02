@@ -47,16 +47,19 @@ where
     ) -> Result<SmtpClientSession<'a, T>, ConnectError<T::Error>> {
         let Self {
             stack,
-            buffer: buf,
+            buffer,
             auth,
         } = self;
 
         let mut stream =
             TcpStream::new(stack, remote.into()).map_err(|e| ConnectError::IoError(e))?;
 
-        ResponseParser::new(&mut stream, buf).expect_code(b"220")?;
+        Self::server_greeting(&mut stream, buffer)?;
 
-        Ok(SmtpClientSession { stream, buf })
+        Ok(SmtpClientSession {
+            stream,
+            buf: buffer,
+        })
     }
 
     // FIXME: Blocking for simplicity
@@ -73,6 +76,14 @@ where
             .map_err(|e| ConnectHostnameError::DnsError(e))?;
 
         Ok(self.connect((addr, port))?)
+    }
+
+    fn server_greeting(
+        stream: &mut TcpStream<T>,
+        buffer: &mut [u8],
+    ) -> Result<(), ConnectError<T::Error>> {
+        ResponseParser::new(stream, buffer).expect_code(b"220")?;
+        Ok(())
     }
 }
 
