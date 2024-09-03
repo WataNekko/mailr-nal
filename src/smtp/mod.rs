@@ -114,6 +114,7 @@ where
 {
     IoError(E),
     NoMem,
+    FormatError,
     AuthFailed,
     AuthUnsupported,
     UnexpectedResponse,
