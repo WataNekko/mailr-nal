@@ -1,9 +1,7 @@
 #![cfg_attr(not(test), no_std)]
 
-mod smtp;
-pub use smtp::*;
-
 pub mod auth;
+pub mod smtp;
 
 mod io;
 mod nb_fut;
