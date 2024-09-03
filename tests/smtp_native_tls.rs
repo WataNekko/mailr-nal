@@ -184,7 +184,7 @@ mod tls {
 #[cfg(test)]
 mod connect {
     use super::*;
-    use mailr_nal::smtp::SmtpClient;
+    use mailr_nal::{auth::Credential, smtp::SmtpClient};
     use test_common::TestContext;
 
     #[test]
@@ -199,5 +199,24 @@ mod connect {
         let _client = SmtpClient::new(&mut stack, &mut buf)
             .connect(([127, 0, 0, 1], tls_port))
             .expect("connected without authentication");
+    }
+
+    #[test]
+    fn auth_success() {
+        let TestContext {
+            tls_port,
+            tls_cert,
+            username,
+            password,
+            ..
+        } = TestContext::setup();
+
+        let mut stack = tls::TlsStack::new(tls_cert);
+        let mut buf = [0; 1024];
+
+        let result = SmtpClient::new(&mut stack, &mut buf)
+            .with_auth(Some(Credential::new(&username, &password)))
+            .connect(([127, 0, 0, 1], tls_port))
+            .expect("should authenticate successfully");
     }
 }
