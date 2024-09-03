@@ -34,7 +34,7 @@ where
                 ));
             }
 
-            if !line.to_be_continued {
+            if !line.has_next {
                 break;
             }
         }
@@ -42,11 +42,11 @@ where
     }
 
     /// Return the next reply line and whether the reply continues (expecting another line)
-    fn next_line(&mut self) -> Result<ReplyLine, ResponseError<R::Error>> {
+    pub fn next_line(&mut self) -> Result<ReplyLine, ResponseError<R::Error>> {
         let line = self.0.read_line()?.as_bytes();
 
         let (code, text) = line.split_at_checked(3).ok_or(ResponseError::FormatError)?;
-        let (text, to_be_continued) = text
+        let (text, has_next) = text
             .split_first()
             .map(|(&first, rest)| (rest, first == b'-'))
             .unwrap_or((b"", false));
@@ -54,7 +54,7 @@ where
         Ok(ReplyLine {
             code,
             text: str::from_utf8(text).map_err(|_| ResponseError::FormatError)?,
-            to_be_continued,
+            has_next,
         })
     }
 }
@@ -82,8 +82,8 @@ where
     }
 }
 
-struct ReplyLine<'a> {
-    code: &'a [u8],
-    text: &'a str,
-    to_be_continued: bool,
+pub struct ReplyLine<'a> {
+    pub code: &'a [u8],
+    pub text: &'a str,
+    pub has_next: bool,
 }
