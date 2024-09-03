@@ -94,7 +94,6 @@ mod send {
             .body("Blah blah blah...\r\n..etc. etc. etc.");
     }
 
-    #[cfg(todo)]
     #[test]
     fn send_mail() {
         let TestContext { plain_port, .. } = TestContext::setup();
@@ -106,11 +105,14 @@ mod send {
             .connect(([127, 0, 0, 1], plain_port))
             .unwrap();
 
+        let to = ["Jones@foo.com".into()];
+        let cc = ["Green@foo.com".into()];
+        let bcc = ["Brown@foo.com".into()];
         let mail = Mail::new()
             .from("Smith@bar.com")
-            .to(&["Jones@foo.com"])
-            .cc(&["Green@foo.com"])
-            .bcc(&["Brown@foo.com"])
+            .to(&to)
+            .cc(&cc)
+            .bcc(&bcc)
             .subject("Test mail")
             .body("Blah blah blah...\r\n..etc. etc. etc.");
 

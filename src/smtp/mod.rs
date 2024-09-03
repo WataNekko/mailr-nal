@@ -7,13 +7,14 @@ use embedded_nal::{nb::block, AddrType, Dns, SocketAddr, TcpClientStack, TcpErro
 
 pub use self::commands::ClientId;
 use self::{
-    commands::{Command, Ehlo},
+    commands::{Command, Data, Ehlo, MailFrom, RcptTo},
     extensions::{auth::Auth, EhloInfo},
     response::{ResponseError, ResponseParser},
 };
 use crate::{
     auth::Credential,
     io::{TcpStream, WithBuf},
+    message::Mail,
 };
 
 pub struct SmtpClient;
@@ -169,6 +170,7 @@ where
     T: TcpClientStack,
 {
     stream: WithBuf<'a, TcpStream<'a, T>>,
+    #[allow(unused)]
     ehlo_info: EhloInfo,
 }
 
@@ -178,5 +180,37 @@ where
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "SmtpClientSession")
+    }
+}
+
+impl<T: TcpClientStack> SmtpClientSession<'_, T> {
+    pub fn send(&mut self, mail: &Mail) -> Result<(), SendError<T::Error>> {
+        let stream = &mut self.stream;
+
+        let sender = mail.from.map(|m| m.address);
+        MailFrom(sender).execute(&mut *stream)?;
+
+        let receiver = mail
+            .to
+            .iter()
+            .chain(mail.cc)
+            .chain(mail.bcc)
+            .map(|m| m.address);
+        RcptTo(&receiver).execute(&mut *stream)?;
+
+        Data(mail).execute(stream)
+    }
+}
+
+#[derive(Debug)]
+pub enum SendError<E: TcpError> {
+    IoError(E),
+    NoMem,
+    SendFailed,
+}
+
+impl<E: TcpError> From<E> for SendError<E> {
+    fn from(value: E) -> Self {
+        Self::IoError(value)
     }
 }

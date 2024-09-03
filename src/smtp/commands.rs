@@ -4,9 +4,12 @@ use enumset::EnumSet;
 use super::{
     extensions::{EhloInfo, SmtpExtension},
     response::{ReplyLine, ResponseParser},
-    ConnectError,
+    ConnectError, SendError,
 };
-use crate::io::{BufWriter, TcpStream, WithBuf};
+use crate::{
+    io::{BufWriter, TcpStream, WithBuf},
+    message::Mail,
+};
 
 /// An SMTP command that can be executed (e.g., EHLO, MAIL, RCPT, etc.).
 pub trait Command<T>
@@ -108,5 +111,41 @@ impl<T: TcpClientStack> Command<T> for Ehlo<'_> {
         }
 
         Ok(EhloInfo { extensions })
+    }
+}
+
+/// MAIL FROM command.
+pub struct MailFrom<'a>(pub Option<&'a str>);
+
+impl<T: TcpClientStack> Command<T> for MailFrom<'_> {
+    type Output = ();
+    type Error = SendError<T::Error>;
+
+    fn execute(self, stream: &mut WithBuf<TcpStream<T>>) -> Result<Self::Output, Self::Error> {
+        todo!()
+    }
+}
+
+/// RCPT TO command.
+pub struct RcptTo<'a, 's>(pub &'a dyn Iterator<Item = &'s str>);
+
+impl<T: TcpClientStack> Command<T> for RcptTo<'_, '_> {
+    type Output = ();
+    type Error = SendError<T::Error>;
+
+    fn execute(self, stream: &mut WithBuf<TcpStream<T>>) -> Result<Self::Output, Self::Error> {
+        todo!()
+    }
+}
+
+/// DATA command.
+pub struct Data<'a, 'mail>(pub &'a Mail<'mail>);
+
+impl<T: TcpClientStack> Command<T> for Data<'_, '_> {
+    type Output = ();
+    type Error = SendError<T::Error>;
+
+    fn execute(self, stream: &mut WithBuf<TcpStream<T>>) -> Result<Self::Output, Self::Error> {
+        todo!()
     }
 }
