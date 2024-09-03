@@ -5,6 +5,7 @@ pub struct Mailbox<'a> {
 }
 
 impl<'a> Mailbox<'a> {
+    // FIXME: validate input
     pub fn new(address: &'a str) -> Self {
         Self {
             address,
@@ -12,6 +13,7 @@ impl<'a> Mailbox<'a> {
         }
     }
 
+    // FIXME: validate input
     pub fn with_name(name: &'a str, address: &'a str) -> Self {
         Self {
             name: Some(name),
@@ -33,6 +35,7 @@ pub struct Envelope<'a> {
 }
 
 impl<'a> Envelope<'a> {
+    // FIXME: validate input
     pub fn new(from: &'a str, to: &'a str) -> Self {
         Self {
             from_addr: from,

@@ -24,6 +24,7 @@ where
 pub struct ClientId<'a>(&'a str);
 
 impl<'a> ClientId<'a> {
+    // FIXME: validate input
     pub fn new(id: &'a str) -> Self {
         Self(id)
     }
