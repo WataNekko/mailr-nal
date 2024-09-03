@@ -23,6 +23,58 @@ impl<T: TcpClientStack> Command<T> for Auth<'_, '_> {
     type Error = ConnectError<T::Error>;
 
     fn execute(self, stream: &mut WithBuf<TcpStream<T>>) -> Result<Self::Output, Self::Error> {
-        Ok(())
+        let Self {
+            credential,
+            ehlo_info,
+        } = self;
+
+        let supported = ehlo_info.extensions & AUTH_EXTENSION_MASK;
+        if supported.is_empty() {
+            return Err(ConnectError::AuthUnsupported);
+        }
+
+        for mechanism in supported.iter() {
+            match mechanism {
+                SmtpExtension::AuthPlain => match AuthPlain(credential).execute(&mut *stream) {
+                    Ok(()) => return Ok(()),
+                    Err(ConnectError::AuthFailed) => continue,
+                    Err(e) => return Err(e),
+                },
+                SmtpExtension::AuthLogin => match AuthLogin(credential).execute(&mut *stream) {
+                    Ok(()) => return Ok(()),
+                    Err(ConnectError::AuthFailed) => continue,
+                    Err(e) => return Err(e),
+                },
+                _ => unreachable!(),
+            }
+        }
+
+        Err(ConnectError::AuthFailed)
+    }
+}
+
+struct AuthPlain<'cred>(Credential<'cred>);
+
+impl<T: TcpClientStack> Command<T> for AuthPlain<'_> {
+    type Output = ();
+    type Error = ConnectError<T::Error>;
+
+    fn execute(self, stream: &mut WithBuf<TcpStream<T>>) -> Result<Self::Output, Self::Error> {
+        let Self(credential) = self;
+
+        Err(ConnectError::AuthFailed)
+    }
+}
+
+struct AuthLogin<'cred>(Credential<'cred>);
+
+impl<T: TcpClientStack> Command<T> for AuthLogin<'_> {
+    type Output = ();
+    type Error = ConnectError<T::Error>;
+
+    fn execute(self, stream: &mut WithBuf<TcpStream<T>>) -> Result<Self::Output, Self::Error> {
+        let Self(credential) = self;
+
+        Err(ConnectError::AuthFailed)
     }
 }

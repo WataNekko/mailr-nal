@@ -1,3 +1,4 @@
+#[derive(Clone, Copy)]
 pub struct Credential<'a> {
     pub username: &'a str,
     pub password: &'a str,
