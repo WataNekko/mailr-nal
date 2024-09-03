@@ -11,5 +11,6 @@ embedded-nal = "0.8.0"
 enumset = "1.1.5"
 
 [dev-dependencies]
+native-tls = "0.2.12"
 std-embedded-nal = "0.3.0"
 test-common = { path = "tests/common" }
