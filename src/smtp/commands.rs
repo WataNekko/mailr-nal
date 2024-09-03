@@ -7,8 +7,8 @@ use super::{
     ConnectError, SendError,
 };
 use crate::{
-    io::{BufWriter, TcpStream, WithBuf},
-    message::Mail,
+    io::{BufWriter, TcpStream, WithBuf, Write},
+    message::{Mail, Mailbox},
 };
 
 /// An SMTP command that can be executed (e.g., EHLO, MAIL, RCPT, etc.).
@@ -163,11 +163,82 @@ where
 /// DATA command.
 pub struct Data<'a, 'mail>(pub &'a Mail<'mail>);
 
+impl Data<'_, '_> {
+    fn write_sanitized<W: Write>(
+        writer: &mut BufWriter<W>,
+        mut data: &str,
+    ) -> Result<(), W::Error> {
+        const DELIM: &str = "\r\n.";
+
+        loop {
+            let pos = data.find(DELIM).map(|p| p + DELIM.len() - 1);
+
+            match pos {
+                Some(pos) => {
+                    write!(writer, "{}", &data[..=pos])?;
+                    data = &data[pos..];
+                }
+                None => {
+                    write!(writer, "{}", data)?;
+                    break;
+                }
+            };
+        }
+
+        Ok(())
+    }
+}
+
 impl<T: TcpClientStack> Command<T> for Data<'_, '_> {
     type Output = ();
     type Error = SendError<T::Error>;
 
     fn execute(self, stream: &mut WithBuf<TcpStream<T>>) -> Result<Self::Output, Self::Error> {
-        todo!()
+        let mail = self.0;
+
+        BufWriter::from(&mut *stream).write(b"DATA\r\n")?;
+        ResponseParser::new(&mut *stream).expect_code(b"354")?;
+
+        {
+            let mut stream = BufWriter::from(&mut *stream);
+
+            if let Some(from) = mail.from {
+                write!(stream, "From:{}\r\n", from)?;
+            }
+
+            if let Some((first, rest)) = mail.to.split_first() {
+                write!(stream, "To:{}", first)?;
+                for rcv in rest {
+                    write!(stream, ",{}", rcv)?;
+                }
+                write!(stream, "\r\n")?;
+            }
+
+            if let Some((first, rest)) = mail.cc.split_first() {
+                write!(stream, "Cc:{}", first)?;
+                for rcv in rest {
+                    write!(stream, ",{}", rcv)?;
+                }
+                write!(stream, "\r\n")?;
+            }
+
+            if let Some(subject) = mail.subject {
+                write!(stream, "Subject:{}\r\n", subject)?;
+            }
+
+            if let Some(body) = mail.body {
+                write!(stream, "\r\n")?;
+                Self::write_sanitized(&mut stream, body)?;
+
+                if !body.ends_with("\r\n") {
+                    write!(stream, "\r\n")?;
+                }
+            }
+
+            write!(stream, ".\r\n")?;
+        }
+
+        ResponseParser::new(stream).expect_code(b"250")?;
+        Ok(())
     }
 }

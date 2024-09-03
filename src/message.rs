@@ -28,6 +28,12 @@ impl<'a> From<&'a str> for Mailbox<'a> {
     }
 }
 
+impl core::fmt::Display for Mailbox<'_> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}<{}>", self.name.unwrap_or(""), self.address)
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct Envelope<'a> {
     pub from_addr: &'a str,

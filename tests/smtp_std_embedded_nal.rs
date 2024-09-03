@@ -105,7 +105,7 @@ mod send {
             .connect(([127, 0, 0, 1], plain_port))
             .unwrap();
 
-        let to = ["Jones@foo.com".into()];
+        let to = ["Jones@foo.com".into(), "John@foo.com".into()];
         let cc = ["Green@foo.com".into()];
         let bcc = ["Brown@foo.com".into()];
         let mail = Mail::new()
