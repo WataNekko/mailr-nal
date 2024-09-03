@@ -8,6 +8,7 @@ use super::{
 };
 use crate::io::{BufWriter, TcpStream, WithBuf};
 
+/// An SMTP command that can be executed (e.g., EHLO, MAIL, RCPT, etc.).
 pub trait Command<T>
 where
     T: TcpClientStack,
@@ -44,6 +45,8 @@ impl core::fmt::Display for ClientId<'_> {
     }
 }
 
+/// EHLO command for greeting and register supported SMTP extensions
+/// (https://www.rfc-editor.org/rfc/rfc5321#section-4.1.1.1).
 pub struct Ehlo<'a>(pub(crate) ClientId<'a>);
 
 impl<T: TcpClientStack> Command<T> for Ehlo<'_> {

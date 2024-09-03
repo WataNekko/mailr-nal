@@ -12,6 +12,7 @@ use crate::{
 pub const AUTH_EXTENSION_MASK: EnumSet<SmtpExtension> =
     enum_set!(SmtpExtension::AuthLogin | SmtpExtension::AuthPlain);
 
+/// AUTH command for SMTP authentication extension (https://www.rfc-editor.org/rfc/rfc4954).
 pub struct Auth<'cred, 'ehlo> {
     pub credential: Credential<'cred>,
     pub ehlo_info: &'ehlo EhloInfo,
