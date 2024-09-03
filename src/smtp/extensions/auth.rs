@@ -106,8 +106,55 @@ impl<T: TcpClientStack> Command<T> for AuthLogin<'_> {
     type Error = ConnectError<T::Error>;
 
     fn execute(self, stream: &mut WithBuf<TcpStream<T>>) -> Result<Self::Output, Self::Error> {
-        let Self(credential) = self;
+        let Self(Credential { username, password }) = self;
 
-        Err(ConnectError::AuthFailed)
+        BufWriter::from(&mut *stream).write(b"AUTH LOGIN\r\n")?;
+
+        ResponseParser::new(&mut *stream)
+            .expect_code(b"334")
+            .map_err(|e| match e {
+                ResponseError::ReplyCodeError(_) => ConnectError::AuthFailed,
+                e => e.into(),
+            })?;
+
+        // username
+        {
+            // FIXME: reuse stream buffer somehow.
+            let mut encoded = [0; 512];
+            let n = BASE64
+                .encode_slice(username, &mut encoded)
+                .map_err(|_| ConnectError::NoMem)?;
+
+            let mut stream = BufWriter::from(&mut *stream);
+            stream.write(&encoded[..n])?;
+            stream.write(b"\r\n")?;
+        }
+
+        ResponseParser::new(&mut *stream)
+            .expect_code(b"334")
+            .map_err(|e| match e {
+                ResponseError::ReplyCodeError(_) => ConnectError::AuthFailed,
+                e => e.into(),
+            })?;
+
+        // password
+        {
+            // FIXME: reuse stream buffer somehow.
+            let mut encoded = [0; 512];
+            let n = BASE64
+                .encode_slice(password, &mut encoded)
+                .map_err(|_| ConnectError::NoMem)?;
+
+            let mut stream = BufWriter::from(&mut *stream);
+            stream.write(&encoded[..n])?;
+            stream.write(b"\r\n")?;
+        }
+
+        ResponseParser::new(&mut *stream)
+            .expect_code(b"235")
+            .map_err(|e| match e {
+                ResponseError::ReplyCodeError(_) => ConnectError::AuthFailed,
+                e => e.into(),
+            })
     }
 }
