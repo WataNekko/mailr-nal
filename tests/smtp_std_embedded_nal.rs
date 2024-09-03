@@ -83,10 +83,14 @@ mod send {
     fn mail_message() {
         let _ = Mail::new()
             .from("Smith@bar.com")
-            .to(&["Jones@foo.com"])
-            .cc(&["Green@foo.com"])
-            .bcc(&["Brown@foo.com"])
+            .from(Mailbox::with_name("Smith", "Smith@bar.com"))
+            .to(&["Jones@foo.com".into()])
+            .cc(&["Green@foo.com".into()])
+            .bcc(&["Brown@foo.com".into()])
+            .bcc(&[Mailbox::new("Brown@foo.com")])
+            .subject(None)
             .subject("Test mail")
+            .body(None)
             .body("Blah blah blah...\r\n..etc. etc. etc.");
     }
 
