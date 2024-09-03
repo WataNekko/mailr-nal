@@ -69,7 +69,8 @@ where
         let stream = TcpStream::new(stack, remote.into()).map_err(|e| ConnectError::IoError(e))?;
         let mut stream = WithBuf(stream, buffer);
 
-        Self::server_greeting(&mut stream)?;
+        // server greeting
+        ResponseParser::new(&mut stream).expect_code(b"220")?;
 
         let client_id = client_id.unwrap_or(ClientId::localhost());
         let ehlo_info = Ehlo(client_id).execute(&mut stream)?;
@@ -91,11 +92,6 @@ where
             .map_err(|e| ConnectHostnameError::DnsError(e))?;
 
         Ok(self.connect((addr, port))?)
-    }
-
-    fn server_greeting(stream: &mut WithBuf<TcpStream<T>>) -> Result<(), ConnectError<T::Error>> {
-        ResponseParser::new(stream).expect_code(b"220")?;
-        Ok(())
     }
 }
 
