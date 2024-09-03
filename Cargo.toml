@@ -12,3 +12,4 @@ enumset = "1.1.5"
 
 [dev-dependencies]
 std-embedded-nal = "0.3.0"
+test-common = { path = "tests/common" }

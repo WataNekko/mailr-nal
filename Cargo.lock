@@ -86,6 +86,7 @@ dependencies = [
  "embedded-nal",
  "enumset",
  "std-embedded-nal",
+ "test-common",
 ]
 
 [[package]]
@@ -137,6 +138,10 @@ dependencies = [
  "quote",
  "unicode-ident",
 ]
+
+[[package]]
+name = "test-common"
+version = "0.0.0"
 
 [[package]]
 name = "unicode-ident"
