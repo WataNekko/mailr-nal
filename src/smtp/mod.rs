@@ -6,9 +6,11 @@ use core::fmt::Debug;
 use embedded_nal::{nb::block, AddrType, Dns, SocketAddr, TcpClientStack, TcpError};
 
 pub use self::commands::ClientId;
-use self::commands::{Command, Ehlo};
-use self::extensions::EhloInfo;
-use self::response::{ResponseError, ResponseParser};
+use self::{
+    commands::{Command, Ehlo},
+    extensions::{auth::Auth, EhloInfo},
+    response::{ResponseError, ResponseParser},
+};
 use crate::{
     auth::Credential,
     io::{TcpStream, WithBuf},
@@ -74,6 +76,16 @@ where
 
         let client_id = client_id.unwrap_or(ClientId::localhost());
         let ehlo_info = Ehlo(client_id).execute(&mut stream)?;
+
+        if let Some(credential) = auth {
+            let ehlo_info = &ehlo_info;
+
+            Auth {
+                credential,
+                ehlo_info,
+            }
+            .execute(&mut stream)?;
+        }
 
         Ok(SmtpClientSession { stream, ehlo_info })
     }
