@@ -2,12 +2,12 @@ mod commands;
 mod extensions;
 mod response;
 
-use core::fmt::Debug;
+use core::{fmt::Debug, mem::ManuallyDrop};
 use embedded_nal::{nb::block, AddrType, Dns, SocketAddr, TcpClientStack, TcpError};
 
 pub use self::commands::ClientId;
 use self::{
-    commands::{Command, Data, Ehlo, MailFrom, RcptTo},
+    commands::{Command, Data, Ehlo, MailFrom, Quit, RcptTo},
     extensions::{auth::Auth, EhloInfo},
     response::{ResponseError, ResponseParser},
 };
@@ -199,6 +199,21 @@ impl<T: TcpClientStack> SmtpClientSession<'_, T> {
         RcptTo(receiver).execute(&mut *stream)?;
 
         Data(mail).execute(stream)
+    }
+
+    pub fn close(self) -> Result<(), T::Error> {
+        let mut me = ManuallyDrop::new(self);
+        Quit.execute(&mut me.stream)?;
+
+        // SAFETY: `stream` is behind `ManuallyDrop` and is never touched again
+        // so it's safe to convert here.
+        unsafe { core::ptr::read(&me.stream).0.close() }
+    }
+}
+
+impl<T: TcpClientStack> Drop for SmtpClientSession<'_, T> {
+    fn drop(&mut self) {
+        let _ = Quit.execute(&mut self.stream);
     }
 }
 

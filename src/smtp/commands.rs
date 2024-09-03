@@ -8,7 +8,7 @@ use super::{
 };
 use crate::{
     io::{BufWriter, TcpStream, WithBuf, Write},
-    message::{Mail, Mailbox},
+    message::Mail,
 };
 
 /// An SMTP command that can be executed (e.g., EHLO, MAIL, RCPT, etc.).
@@ -240,5 +240,17 @@ impl<T: TcpClientStack> Command<T> for Data<'_, '_> {
 
         ResponseParser::new(stream).expect_code(b"250")?;
         Ok(())
+    }
+}
+
+/// QUIT command
+pub struct Quit;
+
+impl<T: TcpClientStack> Command<T> for Quit {
+    type Output = ();
+    type Error = T::Error;
+
+    fn execute(self, stream: &mut WithBuf<TcpStream<T>>) -> Result<Self::Output, Self::Error> {
+        BufWriter::from(stream).write(b"QUIT\r\n")
     }
 }

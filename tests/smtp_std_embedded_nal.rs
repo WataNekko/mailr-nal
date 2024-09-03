@@ -178,9 +178,7 @@ mod send {
             .expect("sent successfully");
     }
 
-    #[cfg(todo)]
     #[test]
-    #[ignore]
     fn close() {
         let TestContext { plain_port, .. } = TestContext::setup();
 
