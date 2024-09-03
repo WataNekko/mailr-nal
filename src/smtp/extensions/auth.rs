@@ -51,6 +51,7 @@ impl<T: TcpClientStack> Command<T> for Auth<'_, '_> {
                     Err(ConnectError::AuthFailed) => continue,
                     Err(e) => return Err(e),
                 },
+                #[allow(unreachable_patterns)]
                 _ => unreachable!(),
             }
         }
