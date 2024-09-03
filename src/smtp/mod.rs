@@ -196,7 +196,7 @@ impl<T: TcpClientStack> SmtpClientSession<'_, T> {
             .chain(mail.cc)
             .chain(mail.bcc)
             .map(|m| m.address);
-        RcptTo(&receiver).execute(&mut *stream)?;
+        RcptTo(receiver).execute(&mut *stream)?;
 
         Data(mail).execute(stream)
     }

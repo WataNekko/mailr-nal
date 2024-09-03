@@ -135,14 +135,28 @@ impl<T: TcpClientStack> Command<T> for MailFrom<'_> {
 }
 
 /// RCPT TO command.
-pub struct RcptTo<'a, 's>(pub &'a dyn Iterator<Item = &'s str>);
+pub struct RcptTo<'s, I>(pub I)
+where
+    I: Iterator<Item = &'s str>;
 
-impl<T: TcpClientStack> Command<T> for RcptTo<'_, '_> {
+impl<'s, T, I> Command<T> for RcptTo<'s, I>
+where
+    T: TcpClientStack,
+    I: Iterator<Item = &'s str>,
+{
     type Output = ();
     type Error = SendError<T::Error>;
 
     fn execute(self, stream: &mut WithBuf<TcpStream<T>>) -> Result<Self::Output, Self::Error> {
-        todo!()
+        for receiver in self.0 {
+            {
+                let mut stream = BufWriter::from(&mut *stream);
+                write!(stream, "RCPT TO:<{}>\r\n", receiver)?;
+            }
+            ResponseParser::new(&mut *stream).expect_code(b"250")?;
+        }
+
+        Ok(())
     }
 }
 
