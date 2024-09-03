@@ -6,7 +6,7 @@ use super::{Read, Write};
 
 pub struct TcpStream<'a, T>
 where
-    T: TcpClientStack + 'a,
+    T: TcpClientStack,
 {
     stack: &'a mut T,
     socket: ManuallyDrop<T::TcpSocket>,
@@ -14,7 +14,7 @@ where
 
 impl<'a, T> TcpStream<'a, T>
 where
-    T: TcpClientStack + 'a,
+    T: TcpClientStack,
 {
     pub fn new(stack: &'a mut T, remote: SocketAddr) -> Result<Self, T::Error> {
         // FIXME: Blocking connect for now for simplicity
@@ -45,7 +45,7 @@ where
 
 impl<'a, T> Drop for TcpStream<'a, T>
 where
-    T: TcpClientStack + 'a,
+    T: TcpClientStack,
 {
     fn drop(&mut self) {
         let _ = self.internal_close();
@@ -54,7 +54,7 @@ where
 
 impl<'a, T> Read for TcpStream<'a, T>
 where
-    T: TcpClientStack + 'a,
+    T: TcpClientStack,
 {
     type Error = T::Error;
 
@@ -65,7 +65,7 @@ where
 
 impl<'a, T> Write for TcpStream<'a, T>
 where
-    T: TcpClientStack + 'a,
+    T: TcpClientStack,
 {
     type Error = T::Error;
 

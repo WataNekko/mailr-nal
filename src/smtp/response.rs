@@ -10,8 +10,8 @@ impl<'a, R> ResponseParser<'a, R>
 where
     R: Read,
 {
-    pub fn new(reader: &'a mut R, buffer: &'a mut [u8]) -> Self {
-        Self(BufReader::new(reader, buffer))
+    pub fn new(value: impl Into<BufReader<'a, R>>) -> Self {
+        Self(value.into())
     }
 
     pub fn expect_code(mut self, code: &[u8]) -> Result<(), ResponseError<'a, R::Error>> {

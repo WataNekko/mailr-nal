@@ -6,14 +6,17 @@ use embedded_nal::{nb::block, AddrType, Dns, SocketAddr, TcpClientStack, TcpErro
 
 pub use self::commands::ClientId;
 use self::response::{ResponseError, ResponseParser};
-use crate::{auth::Credential, io::TcpStream};
+use crate::{
+    auth::Credential,
+    io::{TcpStream, WithBuf},
+};
 
 pub struct SmtpClient;
 
 impl SmtpClient {
     pub fn new<'a, T>(stack: &'a mut T, buffer: &'a mut [u8]) -> SmtpClientConnector<'a, T>
     where
-        T: TcpClientStack + 'a,
+        T: TcpClientStack,
     {
         SmtpClientConnector {
             stack,
@@ -26,7 +29,7 @@ impl SmtpClient {
 
 pub struct SmtpClientConnector<'a, T>
 where
-    T: TcpClientStack + 'a,
+    T: TcpClientStack,
 {
     stack: &'a mut T,
     buffer: &'a mut [u8],
@@ -36,7 +39,7 @@ where
 
 impl<'a, T> SmtpClientConnector<'a, T>
 where
-    T: TcpClientStack + 'a,
+    T: TcpClientStack,
 {
     pub fn with_auth(mut self, value: impl Into<Option<Credential<'a>>>) -> Self {
         self.auth = value.into();
@@ -60,18 +63,15 @@ where
             client_id,
         } = self;
 
-        let mut stream =
-            TcpStream::new(stack, remote.into()).map_err(|e| ConnectError::IoError(e))?;
+        let stream = TcpStream::new(stack, remote.into()).map_err(|e| ConnectError::IoError(e))?;
+        let mut stream = WithBuf(stream, buffer);
 
-        Self::server_greeting(&mut stream, buffer)?;
+        Self::server_greeting(&mut stream)?;
 
         let client_id = client_id.unwrap_or(ClientId::localhost());
-        Self::ehlo(&mut stream, buffer, client_id)?;
+        Self::ehlo(&mut stream, client_id)?;
 
-        Ok(SmtpClientSession {
-            stream,
-            buf: buffer,
-        })
+        Ok(SmtpClientSession { stream })
     }
 
     // FIXME: Blocking for simplicity
@@ -90,17 +90,13 @@ where
         Ok(self.connect((addr, port))?)
     }
 
-    fn server_greeting(
-        stream: &mut TcpStream<T>,
-        buffer: &mut [u8],
-    ) -> Result<(), ConnectError<T::Error>> {
-        ResponseParser::new(stream, buffer).expect_code(b"220")?;
+    fn server_greeting(stream: &mut WithBuf<TcpStream<T>>) -> Result<(), ConnectError<T::Error>> {
+        ResponseParser::new(stream).expect_code(b"220")?;
         Ok(())
     }
 
     fn ehlo(
-        stream: &mut TcpStream<T>,
-        buffer: &mut [u8],
+        stream: &mut WithBuf<TcpStream<T>>,
         client_id: ClientId,
     ) -> Result<(), ConnectError<T::Error>> {
         Ok(())
@@ -158,8 +154,7 @@ pub struct SmtpClientSession<'a, T>
 where
     T: TcpClientStack,
 {
-    stream: TcpStream<'a, T>,
-    buf: &'a [u8],
+    stream: WithBuf<'a, TcpStream<'a, T>>,
 }
 
 impl<'a, T> Debug for SmtpClientSession<'a, T>
