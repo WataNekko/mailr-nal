@@ -63,6 +63,47 @@ where
         }
         Ok(())
     }
+
+    /// Writes a formatted string into this writer, returning any error encountered.
+    pub fn write_fmt(&mut self, fmt: core::fmt::Arguments<'_>) -> Result<(), W::Error> {
+        // Create an adapter to a fmt::Write and saves off I/O errors. instead of discarding them
+        struct Adapter<'a, 'b, W: Write> {
+            inner: &'a mut BufWriter<'b, W>,
+            error: Result<(), W::Error>,
+        }
+
+        impl<W: Write> core::fmt::Write for Adapter<'_, '_, W> {
+            fn write_str(&mut self, s: &str) -> core::fmt::Result {
+                match self.inner.write(s.as_bytes()) {
+                    Ok(()) => Ok(()),
+                    Err(e) => {
+                        self.error = Err(e);
+                        Err(core::fmt::Error)
+                    }
+                }
+            }
+        }
+
+        let mut output = Adapter {
+            inner: self,
+            error: Ok(()),
+        };
+        match core::fmt::write(&mut output, fmt) {
+            Ok(()) => Ok(()),
+            Err(..) => {
+                // check if the error came from the underlying `Write` or not
+                if output.error.is_err() {
+                    output.error
+                } else {
+                    // This shouldn't happen: the underlying stream did not error, but somehow
+                    // the formatter still errored?
+                    panic!(
+                        "a formatting trait implementation returned an error when the underlying stream did not"
+                    );
+                }
+            }
+        }
+    }
 }
 
 impl<'a, W> Drop for BufWriter<'a, W>

@@ -18,4 +18,16 @@ impl<'a> From<&'a str> for ClientId<'a> {
     }
 }
 
+impl core::fmt::Display for ClientId<'_> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 pub struct Ehlo<'a>(pub(crate) ClientId<'a>);
+
+impl core::fmt::Display for Ehlo<'_> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "EHLO {}\r\n", self.0)
+    }
+}

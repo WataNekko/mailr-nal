@@ -1,6 +1,7 @@
 mod commands;
 mod response;
 
+use commands::Ehlo;
 use core::fmt::Debug;
 use embedded_nal::{nb::block, AddrType, Dns, SocketAddr, TcpClientStack, TcpError};
 
@@ -8,7 +9,7 @@ pub use self::commands::ClientId;
 use self::response::{ResponseError, ResponseParser};
 use crate::{
     auth::Credential,
-    io::{TcpStream, WithBuf},
+    io::{BufWriter, TcpStream, WithBuf},
 };
 
 pub struct SmtpClient;
@@ -99,6 +100,10 @@ where
         stream: &mut WithBuf<TcpStream<T>>,
         client_id: ClientId,
     ) -> Result<(), ConnectError<T::Error>> {
+        {
+            let mut stream = BufWriter::from(stream);
+            write!(stream, "{}", Ehlo(client_id))?;
+        }
         Ok(())
     }
 }
@@ -127,6 +132,15 @@ where
             ResponseError::ReadError(e) => Self::IoError(e),
             ResponseError::NoMem => Self::NoMem,
         }
+    }
+}
+
+impl<E> From<E> for ConnectError<E>
+where
+    E: TcpError,
+{
+    fn from(value: E) -> Self {
+        Self::IoError(value)
     }
 }
 
