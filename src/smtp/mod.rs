@@ -207,10 +207,22 @@ pub enum SendError<E: TcpError> {
     IoError(E),
     NoMem,
     SendFailed,
+    UnexpectedResponse,
 }
 
 impl<E: TcpError> From<E> for SendError<E> {
     fn from(value: E) -> Self {
         Self::IoError(value)
+    }
+}
+
+impl<E: TcpError> From<ResponseError<'_, E>> for SendError<E> {
+    fn from(value: ResponseError<'_, E>) -> Self {
+        match value {
+            ResponseError::ReplyCodeError(_) => Self::SendFailed,
+            ResponseError::ReadError(e) => Self::IoError(e),
+            ResponseError::NoMem => Self::NoMem,
+            ResponseError::FormatError => Self::UnexpectedResponse,
+        }
     }
 }

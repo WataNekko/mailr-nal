@@ -122,7 +122,15 @@ impl<T: TcpClientStack> Command<T> for MailFrom<'_> {
     type Error = SendError<T::Error>;
 
     fn execute(self, stream: &mut WithBuf<TcpStream<T>>) -> Result<Self::Output, Self::Error> {
-        todo!()
+        let sender = self.0.unwrap_or("");
+
+        {
+            let mut stream = BufWriter::from(&mut *stream);
+            write!(stream, "MAIL FROM:<{}>\r\n", sender)?;
+        }
+
+        ResponseParser::new(stream).expect_code(b"250")?;
+        Ok(())
     }
 }
 
