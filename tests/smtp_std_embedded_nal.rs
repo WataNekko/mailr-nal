@@ -1,7 +1,5 @@
 #[cfg(test)]
 mod connect {
-    use std::env::{self, VarError};
-
     use mailr_nal::{
         auth::Credential,
         smtp::{ClientId, ConnectError, SmtpClient},
