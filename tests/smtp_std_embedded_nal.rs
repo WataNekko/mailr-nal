@@ -119,7 +119,6 @@ mod send {
         client.send(&mail).expect("sent first message successfully");
     }
 
-    #[cfg(todo)]
     #[test]
     fn send_multiple_mails() {
         let TestContext { plain_port, .. } = TestContext::setup();
@@ -131,11 +130,14 @@ mod send {
             .connect(([127, 0, 0, 1], plain_port))
             .unwrap();
 
+        let to = ["Jones@foo.com".into(), "John@foo.com".into()];
+        let cc = ["Green@foo.com".into()];
+        let bcc = ["Brown@foo.com".into()];
         let mail = Mail::new()
             .from("Smith@bar.com")
-            .to(&["Jones@foo.com"])
-            .cc(&["Green@foo.com"])
-            .bcc(&["Brown@foo.com"])
+            .to(&to)
+            .cc(&cc)
+            .bcc(&bcc)
             .subject("Test mail")
             .body("Blah blah blah...\r\n..etc. etc. etc.");
 
