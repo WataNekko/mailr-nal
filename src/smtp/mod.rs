@@ -184,28 +184,7 @@ where
 }
 
 impl<T: TcpClientStack> SmtpClientSession<'_, T> {
-    pub fn send(&mut self, mail: &Mail) -> Result<(), SendError<T::Error>> {
-        let stream = &mut self.stream;
-
-        let sender = mail.from.map(|m| m.address);
-        MailFrom(sender).execute(&mut *stream)?;
-
-        let receiver = mail
-            .to
-            .iter()
-            .chain(mail.cc)
-            .chain(mail.bcc)
-            .map(|m| m.address);
-        RcptTo(receiver).execute(&mut *stream)?;
-
-        Data(mail).execute(stream)
-    }
-
-    pub fn send_raw<S, I>(
-        &mut self,
-        envelope: Envelope<S, I>,
-        message: &str,
-    ) -> Result<(), SendError<T::Error>>
+    fn send_internal<S, I>(&mut self, envelope: Envelope<S, I>) -> Result<(), SendError<T::Error>>
     where
         S: AsRef<str>,
         I: Iterator<Item = S>,
@@ -218,9 +197,38 @@ impl<T: TcpClientStack> SmtpClientSession<'_, T> {
         } = envelope;
 
         MailFrom(sender_addr).execute(&mut *stream)?;
-
         RcptTo(receiver_addrs).execute(&mut *stream)?;
 
+        Ok(())
+    }
+
+    pub fn send(&mut self, mail: &Mail) -> Result<(), SendError<T::Error>> {
+        let sender = mail.from.map(|m| m.address);
+        let receivers = mail
+            .to
+            .iter()
+            .chain(mail.cc)
+            .chain(mail.bcc)
+            .map(|m| m.address);
+
+        let envelope = Envelope::new(sender, receivers);
+
+        self.send_internal(envelope)?;
+
+        let stream = &mut self.stream;
+        Data(mail).execute(stream)
+    }
+
+    pub fn send_raw<S, I>(
+        &mut self,
+        envelope: Envelope<S, I>,
+        message: &str,
+    ) -> Result<(), SendError<T::Error>>
+    where
+        S: AsRef<str>,
+        I: Iterator<Item = S>,
+    {
+        self.send_internal(envelope)?;
         todo!();
         Ok(())
     }
