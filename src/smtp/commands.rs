@@ -163,13 +163,33 @@ where
 }
 
 /// DATA command.
-pub struct Data<'a, 'mail>(pub &'a Mail<'mail>);
+pub struct Data<M: DataMessage>(pub M);
 
-impl Data<'_, '_> {
-    fn write_sanitized<W: Write>(
-        writer: &mut BufWriter<W>,
-        mut data: &str,
-    ) -> Result<(), W::Error> {
+impl<T: TcpClientStack, M: DataMessage> Command<T> for Data<M> {
+    type Output = ();
+    type Error = SendError<T::Error>;
+
+    fn execute(self, stream: &mut WithBuf<TcpStream<T>>) -> Result<Self::Output, Self::Error> {
+        let message = self.0;
+
+        BufWriter::from(&mut *stream).write(b"DATA\r\n")?;
+        ResponseParser::new(&mut *stream).expect_code(b"354")?;
+
+        {
+            let mut stream = BufWriter::from(&mut *stream);
+            message.write_to(&mut stream)?;
+            write!(stream, ".\r\n")?;
+        }
+
+        ResponseParser::new(stream).expect_code(b"250")?;
+        Ok(())
+    }
+}
+
+pub trait DataMessage {
+    fn write_to<W: Write>(self, w: &mut BufWriter<W>) -> Result<(), W::Error>;
+
+    fn write_sanitized<W: Write>(w: &mut BufWriter<W>, mut data: &str) -> Result<(), W::Error> {
         const DELIM: &str = "\r\n.";
 
         loop {
@@ -177,11 +197,11 @@ impl Data<'_, '_> {
 
             match pos {
                 Some(pos) => {
-                    write!(writer, "{}", &data[..=pos])?;
+                    write!(w, "{}", &data[..=pos])?;
                     data = &data[pos..];
                 }
                 None => {
-                    write!(writer, "{}", data)?;
+                    write!(w, "{}", data)?;
                     break;
                 }
             };
@@ -191,56 +211,41 @@ impl Data<'_, '_> {
     }
 }
 
-impl<T: TcpClientStack> Command<T> for Data<'_, '_> {
-    type Output = ();
-    type Error = SendError<T::Error>;
-
-    fn execute(self, stream: &mut WithBuf<TcpStream<T>>) -> Result<Self::Output, Self::Error> {
-        let mail = self.0;
-
-        BufWriter::from(&mut *stream).write(b"DATA\r\n")?;
-        ResponseParser::new(&mut *stream).expect_code(b"354")?;
-
-        {
-            let mut stream = BufWriter::from(&mut *stream);
-
-            if let Some(from) = mail.from {
-                write!(stream, "From:{}\r\n", from)?;
-            }
-
-            if let Some((first, rest)) = mail.to.split_first() {
-                write!(stream, "To:{}", first)?;
-                for rcv in rest {
-                    write!(stream, ",{}", rcv)?;
-                }
-                write!(stream, "\r\n")?;
-            }
-
-            if let Some((first, rest)) = mail.cc.split_first() {
-                write!(stream, "Cc:{}", first)?;
-                for rcv in rest {
-                    write!(stream, ",{}", rcv)?;
-                }
-                write!(stream, "\r\n")?;
-            }
-
-            if let Some(subject) = mail.subject {
-                write!(stream, "Subject:{}\r\n", subject)?;
-            }
-
-            if let Some(body) = mail.body {
-                write!(stream, "\r\n")?;
-                Self::write_sanitized(&mut stream, body)?;
-
-                if !body.ends_with("\r\n") {
-                    write!(stream, "\r\n")?;
-                }
-            }
-
-            write!(stream, ".\r\n")?;
+impl DataMessage for &Mail<'_> {
+    fn write_to<W: Write>(self, w: &mut BufWriter<W>) -> Result<(), W::Error> {
+        if let Some(from) = self.from {
+            write!(w, "From:{}\r\n", from)?;
         }
 
-        ResponseParser::new(stream).expect_code(b"250")?;
+        if let Some((first, rest)) = self.to.split_first() {
+            write!(w, "To:{}", first)?;
+            for rcv in rest {
+                write!(w, ",{}", rcv)?;
+            }
+            write!(w, "\r\n")?;
+        }
+
+        if let Some((first, rest)) = self.cc.split_first() {
+            write!(w, "Cc:{}", first)?;
+            for rcv in rest {
+                write!(w, ",{}", rcv)?;
+            }
+            write!(w, "\r\n")?;
+        }
+
+        if let Some(subject) = self.subject {
+            write!(w, "Subject:{}\r\n", subject)?;
+        }
+
+        if let Some(body) = self.body {
+            write!(w, "\r\n")?;
+            Self::write_sanitized(w, body)?;
+
+            if !body.ends_with("\r\n") {
+                write!(w, "\r\n")?;
+            }
+        }
+
         Ok(())
     }
 }
