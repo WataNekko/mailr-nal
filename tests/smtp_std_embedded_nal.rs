@@ -150,9 +150,7 @@ mod send {
             .expect("sent second message successfully");
     }
 
-    #[cfg(todo)]
     #[test]
-    #[ignore]
     fn send_raw() {
         let TestContext { plain_port, .. } = TestContext::setup();
 
@@ -163,7 +161,13 @@ mod send {
             .connect(([127, 0, 0, 1], plain_port))
             .unwrap();
 
-        let envelope = Envelope::new("Smith@bar.com", "Jones@foo.com");
+        let envelope = Envelope::new(
+            "Smith@bar.com",
+            ["Jones@foo.com"]
+                .iter()
+                .chain(&["Jane@bar.com"])
+                .chain(&Some("John@baz.org")),
+        );
         let raw_message = concat!(
             "From:<Smith@bar.com>\r\n",
             "To:<Jones@foo.com>\r\n",

@@ -35,17 +35,25 @@ impl core::fmt::Display for Mailbox<'_> {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct Envelope<'a> {
-    pub from_addr: &'a str,
-    pub to_addr: &'a str,
+pub struct Envelope<'a, S, I>
+where
+    S: AsRef<str>,
+    I: Iterator<Item = S>,
+{
+    pub sender_addr: Option<&'a str>,
+    pub receiver_addrs: I,
 }
 
-impl<'a> Envelope<'a> {
+impl<'a, S, I> Envelope<'a, S, I>
+where
+    S: AsRef<str>,
+    I: Iterator<Item = S>,
+{
     // FIXME: validate input
-    pub fn new(from: &'a str, to: &'a str) -> Self {
+    pub fn new(from: impl Into<Option<&'a str>>, to: impl IntoIterator<IntoIter = I>) -> Self {
         Self {
-            from_addr: from,
-            to_addr: to,
+            sender_addr: from.into(),
+            receiver_addrs: to.into_iter(),
         }
     }
 }

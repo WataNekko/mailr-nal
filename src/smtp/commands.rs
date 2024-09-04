@@ -135,14 +135,16 @@ impl<T: TcpClientStack> Command<T> for MailFrom<'_> {
 }
 
 /// RCPT TO command.
-pub struct RcptTo<'s, I>(pub I)
+pub struct RcptTo<S, I>(pub I)
 where
-    I: Iterator<Item = &'s str>;
+    S: AsRef<str>,
+    I: Iterator<Item = S>;
 
-impl<'s, T, I> Command<T> for RcptTo<'s, I>
+impl<T, S, I> Command<T> for RcptTo<S, I>
 where
     T: TcpClientStack,
-    I: Iterator<Item = &'s str>,
+    S: AsRef<str>,
+    I: Iterator<Item = S>,
 {
     type Output = ();
     type Error = SendError<T::Error>;
@@ -151,7 +153,7 @@ where
         for receiver in self.0 {
             {
                 let mut stream = BufWriter::from(&mut *stream);
-                write!(stream, "RCPT TO:<{}>\r\n", receiver)?;
+                write!(stream, "RCPT TO:<{}>\r\n", receiver.as_ref())?;
             }
             ResponseParser::new(&mut *stream).expect_code(b"250")?;
         }

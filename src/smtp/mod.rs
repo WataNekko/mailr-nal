@@ -14,7 +14,7 @@ use self::{
 use crate::{
     auth::Credential,
     io::{TcpStream, WithBuf},
-    message::Mail,
+    message::{Envelope, Mail},
 };
 
 pub struct SmtpClient;
@@ -199,6 +199,30 @@ impl<T: TcpClientStack> SmtpClientSession<'_, T> {
         RcptTo(receiver).execute(&mut *stream)?;
 
         Data(mail).execute(stream)
+    }
+
+    pub fn send_raw<S, I>(
+        &mut self,
+        envelope: Envelope<S, I>,
+        message: &str,
+    ) -> Result<(), SendError<T::Error>>
+    where
+        S: AsRef<str>,
+        I: Iterator<Item = S>,
+    {
+        let stream = &mut self.stream;
+
+        let Envelope {
+            sender_addr,
+            receiver_addrs,
+        } = envelope;
+
+        MailFrom(sender_addr).execute(&mut *stream)?;
+
+        RcptTo(receiver_addrs).execute(&mut *stream)?;
+
+        todo!();
+        Ok(())
     }
 
     pub fn close(self) -> Result<(), T::Error> {
