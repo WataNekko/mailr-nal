@@ -4,5 +4,5 @@ pub mod auth;
 pub mod message;
 pub mod smtp;
 
-mod io;
-mod nb_fut;
+pub mod io;
+pub mod nb_fut;
