@@ -186,9 +186,13 @@ impl<T: TcpClientStack, M: DataMessage> Command<T> for Data<M> {
     }
 }
 
+/// The message to be written by the DATA command (see `Data` struct).
 pub trait DataMessage {
+    /// Determines how the message is sent. MUST call `write_sanitized` if data is not sanitized.
     fn write_to<W: Write>(self, w: &mut BufWriter<W>) -> Result<(), W::Error>;
 
+    /// Write data to a writer, escaping lines beginning with a period `.`
+    /// (https://www.rfc-editor.org/rfc/rfc5321#section-4.5.2).
     fn write_sanitized<W: Write>(w: &mut BufWriter<W>, mut data: &str) -> Result<(), W::Error> {
         const DELIM: &str = "\r\n.";
 
