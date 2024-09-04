@@ -7,7 +7,7 @@ use embedded_nal::{nb::block, AddrType, Dns, SocketAddr, TcpClientStack, TcpErro
 
 pub use self::commands::ClientId;
 use self::{
-    commands::{Command, Data, Ehlo, MailFrom, Quit, RcptTo},
+    commands::{Command, Data, DataMessage, Ehlo, MailFrom, Quit, RcptTo},
     extensions::{auth::Auth, EhloInfo},
     response::{ResponseError, ResponseParser},
 };
@@ -184,7 +184,11 @@ where
 }
 
 impl<T: TcpClientStack> SmtpClientSession<'_, T> {
-    fn send_internal<S, I>(&mut self, envelope: Envelope<S, I>) -> Result<(), SendError<T::Error>>
+    fn send_internal<S, I>(
+        &mut self,
+        envelope: Envelope<S, I>,
+        message: impl DataMessage,
+    ) -> Result<(), SendError<T::Error>>
     where
         S: AsRef<str>,
         I: Iterator<Item = S>,
@@ -198,10 +202,10 @@ impl<T: TcpClientStack> SmtpClientSession<'_, T> {
 
         MailFrom(sender_addr).execute(&mut *stream)?;
         RcptTo(receiver_addrs).execute(&mut *stream)?;
-
-        Ok(())
+        Data(message).execute(stream)
     }
 
+    #[inline]
     pub fn send(&mut self, mail: &Mail) -> Result<(), SendError<T::Error>> {
         let sender = mail.from.map(|m| m.address);
         let receivers = mail
@@ -213,12 +217,10 @@ impl<T: TcpClientStack> SmtpClientSession<'_, T> {
 
         let envelope = Envelope::new(sender, receivers);
 
-        self.send_internal(envelope)?;
-
-        let stream = &mut self.stream;
-        Data(mail).execute(stream)
+        self.send_internal(envelope, mail)
     }
 
+    #[inline]
     pub fn send_raw<S, I>(
         &mut self,
         envelope: Envelope<S, I>,
@@ -228,9 +230,7 @@ impl<T: TcpClientStack> SmtpClientSession<'_, T> {
         S: AsRef<str>,
         I: Iterator<Item = S>,
     {
-        self.send_internal(envelope)?;
-        todo!();
-        Ok(())
+        self.send_internal(envelope, message)
     }
 
     pub fn close(self) -> Result<(), T::Error> {

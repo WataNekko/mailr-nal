@@ -171,7 +171,7 @@ mod send {
         let raw_message = concat!(
             "From:<Smith@bar.com>\r\n",
             "To:<Jones@foo.com>\r\n",
-            "Subject: Test mail\r\n",
+            "Subject: Raw mail sending\r\n",
             "\r\n",
             "Blah blah blah...\r\n",
             "..etc. etc. etc."

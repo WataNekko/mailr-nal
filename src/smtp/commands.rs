@@ -189,6 +189,7 @@ impl<T: TcpClientStack, M: DataMessage> Command<T> for Data<M> {
 /// The message to be written by the DATA command (see `Data` struct).
 pub trait DataMessage {
     /// Determines how the message is sent. MUST call `write_sanitized` if data is not sanitized.
+    /// MUST ensure that the written message is ended with "\r\n".
     fn write_to<W: Write>(self, w: &mut BufWriter<W>) -> Result<(), W::Error>;
 
     /// Write data to a writer, escaping lines beginning with a period `.`
@@ -248,6 +249,18 @@ impl DataMessage for &Mail<'_> {
             if !body.ends_with("\r\n") {
                 write!(w, "\r\n")?;
             }
+        }
+
+        Ok(())
+    }
+}
+
+impl DataMessage for &str {
+    fn write_to<W: Write>(self, w: &mut BufWriter<W>) -> Result<(), W::Error> {
+        Self::write_sanitized(w, self)?;
+
+        if !self.ends_with("\r\n") {
+            write!(w, "\r\n")?;
         }
 
         Ok(())
