@@ -70,13 +70,14 @@ where
         } = self;
 
         let stream = TcpStream::new(stack, remote.into()).map_err(|e| ConnectError::IoError(e))?;
-        let mut stream = WithBuf(stream, buffer);
+        let stream = WithBuf(stream, buffer);
+        let mut stream = QuitOnDrop(stream);
 
         // server greeting
-        ResponseParser::new(&mut stream).expect_code(b"220")?;
+        ResponseParser::new(&mut stream.0).expect_code(b"220")?;
 
         let client_id = client_id.unwrap_or(ClientId::localhost());
-        let ehlo_info = Ehlo(client_id).execute(&mut stream)?;
+        let ehlo_info = Ehlo(client_id).execute(&mut stream.0)?;
 
         if let Some(credential) = auth {
             let ehlo_info = &ehlo_info;
@@ -85,10 +86,13 @@ where
                 credential,
                 ehlo_info,
             }
-            .execute(&mut stream)?;
+            .execute(&mut stream.0)?;
         }
 
-        Ok(SmtpClientSession { stream, ehlo_info })
+        Ok(SmtpClientSession {
+            stream: stream.into_inner(),
+            ehlo_info,
+        })
     }
 
     // FIXME: Blocking for simplicity
@@ -162,6 +166,25 @@ where
 {
     fn from(value: ConnectError<E>) -> Self {
         Self::ConnectError(value)
+    }
+}
+
+/// For clean up on `connect` fails.
+/// FIXME: integrate this into `SmtpClientSession` struct would be nice.
+struct QuitOnDrop<'a, 'b, T: TcpClientStack>(WithBuf<'a, TcpStream<'b, T>>);
+
+impl<T: TcpClientStack> Drop for QuitOnDrop<'_, '_, T> {
+    fn drop(&mut self) {
+        let _ = Quit.execute(&mut self.0);
+    }
+}
+
+impl<'a, 'b, T: TcpClientStack> QuitOnDrop<'a, 'b, T> {
+    pub fn into_inner(self) -> WithBuf<'a, TcpStream<'b, T>> {
+        let me = ManuallyDrop::new(self);
+
+        // SAFETY: safe to extract inner as it's never touched again otherwise.
+        unsafe { core::ptr::read(&me.0) }
     }
 }
 
