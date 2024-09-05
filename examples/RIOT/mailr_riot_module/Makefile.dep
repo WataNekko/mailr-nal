@@ -1,0 +1,4 @@
+USEMODULE += sock_tcp
+
+# We don't use UDP but riot-sys bindings are not generated correctly with only sock_tcp
+USEMODULE += sock_udp

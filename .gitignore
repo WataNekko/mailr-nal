@@ -1,3 +1,6 @@
 /target
 /tests/data/*.pem
 .vscode/
+
+# RIOT's build directories
+bin

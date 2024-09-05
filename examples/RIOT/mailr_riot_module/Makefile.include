@@ -1,0 +1,2 @@
+USEMODULE_INCLUDES_mailr_riot_module := $(LAST_MAKEFILEDIR)/include
+USEMODULE_INCLUDES += $(USEMODULE_INCLUDES_mailr_riot_module)

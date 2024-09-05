@@ -1,0 +1,24 @@
+[package]
+name = "mailr-riot-module"
+version = "0.1.0"
+edition = "2021"
+authors = ["WataNekko <88185666+WataNekko@users.noreply.github.com>"]
+publish = false
+
+[lib]
+crate-type = ["staticlib"]
+
+# Minimal Rust build size
+[profile.release]
+lto = true
+opt-level = "s"
+debug = true
+panic = "abort"
+codegen-units = 1
+
+[dependencies]
+riot-wrappers = { version = "0.9.1", features = [
+    "set_panic_handler",
+    "panic_handler_format",
+    "with_embedded_nal",
+] }
