@@ -5,4 +5,6 @@ pub mod message;
 pub mod smtp;
 
 mod io;
+
+#[allow(unused)]
 mod nb_fut;
