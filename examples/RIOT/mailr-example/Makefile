@@ -26,3 +26,8 @@ EXTERNAL_MODULE_DIRS += $(CURDIR)/..
 USEMODULE += mailr_riot_module
 
 include $(RIOTBASE)/Makefile.include
+
+# If building in Docker, use the external module dir path relative to the project (git repo) instead
+# of the default `$(DOCKER_BUILD_ROOT)/external`. This is required for the `mailr-nal` Cargo dependency
+# relative path (`../../../`) in `$(DOCKER_RIOTPROJECT)/examples/RIOT/mailr_riot_module` to work.
+DOCKER_OVERRIDE_CMDLINE += 'EXTERNAL_MODULE_DIRS=$(DOCKER_RIOTPROJECT)/examples/RIOT'

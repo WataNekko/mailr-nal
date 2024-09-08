@@ -22,3 +22,5 @@ riot-wrappers = { version = "0.9.1", features = [
     "panic_handler_format",
     "with_embedded_nal",
 ] }
+
+mailr-nal = { path = "../../../" }
