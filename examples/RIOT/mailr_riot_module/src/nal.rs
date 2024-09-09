@@ -155,6 +155,7 @@ impl TcpClientStack for SingleSockTcpStack {
     }
 
     fn close(&mut self, socket: Self::TcpSocket) -> Result<(), Self::Error> {
-        todo!()
+        unsafe { riot_sys::sock_tcp_disconnect(&mut self.0) };
+        Ok(())
     }
 }

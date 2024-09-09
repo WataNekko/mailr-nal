@@ -27,5 +27,7 @@ int main(void)
         return 1;
     }
 
+    puts("Email sent");
+
     return 0;
 }
