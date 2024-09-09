@@ -1,11 +1,7 @@
-use core::ptr::{addr_of, addr_of_mut};
+use core::ptr::addr_of;
 
 use embedded_nal::{nb, SocketAddr, TcpClientStack, TcpError, TcpErrorKind};
-use riot_wrappers::{
-    error::{NegativeErrorExt, NumericError},
-    println,
-    socket::UdpEp,
-};
+use riot_wrappers::error::{NegativeErrorExt, NumericError};
 
 #[derive(Debug)]
 pub struct TcpNumericError(NumericError);
@@ -107,10 +103,10 @@ impl TcpClientStack for SingleSockTcpStack {
 
     fn connect(
         &mut self,
-        socket: &mut Self::TcpSocket,
+        _socket: &mut Self::TcpSocket,
         remote: SocketAddr,
     ) -> nb::Result<(), Self::Error> {
-        let mut remote: riot_sys::sock_tcp_ep_t = SocketAddrWrapper(remote).into();
+        let remote: riot_sys::sock_tcp_ep_t = SocketAddrWrapper(remote).into();
 
         unsafe { riot_sys::sock_tcp_connect(&mut self.0, addr_of!(remote), 0, 0) }
             .negative_to_error()
@@ -121,7 +117,7 @@ impl TcpClientStack for SingleSockTcpStack {
 
     fn send(
         &mut self,
-        socket: &mut Self::TcpSocket,
+        _socket: &mut Self::TcpSocket,
         buffer: &[u8],
     ) -> nb::Result<usize, Self::Error> {
         unsafe {
@@ -138,7 +134,7 @@ impl TcpClientStack for SingleSockTcpStack {
 
     fn receive(
         &mut self,
-        socket: &mut Self::TcpSocket,
+        _socket: &mut Self::TcpSocket,
         buffer: &mut [u8],
     ) -> nb::Result<usize, Self::Error> {
         unsafe {
@@ -154,7 +150,7 @@ impl TcpClientStack for SingleSockTcpStack {
         .map(|n| n as _)
     }
 
-    fn close(&mut self, socket: Self::TcpSocket) -> Result<(), Self::Error> {
+    fn close(&mut self, _socket: Self::TcpSocket) -> Result<(), Self::Error> {
         unsafe { riot_sys::sock_tcp_disconnect(&mut self.0) };
         Ok(())
     }

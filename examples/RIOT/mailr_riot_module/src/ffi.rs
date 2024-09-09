@@ -1,4 +1,3 @@
-use embedded_nal::TcpClientStack;
 use mailr_nal::smtp::SmtpClient;
 
 use crate::nal::{SingleSockTcpStack, SocketAddrWrapper};
