@@ -95,9 +95,9 @@ impl From<SocketAddrWrapper> for SocketAddr {
     }
 }
 
-pub struct SockTcpClientStack(riot_sys::sock_tcp_t);
+pub struct SingleSockTcpStack(riot_sys::sock_tcp_t);
 
-impl TcpClientStack for SockTcpClientStack {
+impl TcpClientStack for SingleSockTcpStack {
     type TcpSocket = ();
     type Error = TcpNumericError;
 

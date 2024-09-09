@@ -1,7 +1,7 @@
 use embedded_nal::TcpClientStack;
 use mailr_nal::smtp::SmtpClient;
 
-use crate::nal::{SockTcpClientStack, SocketAddrWrapper};
+use crate::nal::{SingleSockTcpStack, SocketAddrWrapper};
 
 macro_rules! try_riot {
     ($e: expr) => {
@@ -18,7 +18,7 @@ pub extern "C" fn smtp_hello_world(
     a: &riot_sys::sock_tcp_ep_t,
 ) -> i32 {
     let mut buffer = [0; 1024];
-    let stack: &mut SockTcpClientStack = unsafe { core::mem::transmute(t) };
+    let stack: &mut SingleSockTcpStack = unsafe { core::mem::transmute(t) };
 
     let client = SmtpClient::new(stack, &mut buffer).connect(SocketAddrWrapper::from(a));
 
