@@ -7,9 +7,6 @@ use riot_wrappers::{
     socket::UdpEp,
 };
 
-#[derive(Default)]
-pub struct TcpSocket(riot_sys::sock_tcp_t);
-
 #[derive(Debug)]
 pub struct TcpNumericError(NumericError);
 
@@ -98,14 +95,14 @@ impl From<SocketAddrWrapper> for SocketAddr {
     }
 }
 
-pub struct SockTcpClientStack;
+pub struct SockTcpClientStack(riot_sys::sock_tcp_t);
 
 impl TcpClientStack for SockTcpClientStack {
-    type TcpSocket = TcpSocket;
+    type TcpSocket = ();
     type Error = TcpNumericError;
 
     fn socket(&mut self) -> Result<Self::TcpSocket, Self::Error> {
-        Ok(Default::default())
+        Ok(())
     }
 
     fn connect(
@@ -115,7 +112,7 @@ impl TcpClientStack for SockTcpClientStack {
     ) -> nb::Result<(), Self::Error> {
         let mut remote: riot_sys::sock_tcp_ep_t = SocketAddrWrapper(remote).into();
 
-        unsafe { riot_sys::sock_tcp_connect(&mut socket.0, addr_of!(remote), 0, 0) }
+        unsafe { riot_sys::sock_tcp_connect(&mut self.0, addr_of!(remote), 0, 0) }
             .negative_to_error()
             .map_err(|e| Self::Error::from(e).again_is_wouldblock())?;
 

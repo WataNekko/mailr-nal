@@ -19,7 +19,9 @@ int main(void)
         return 1;
     }
 
-    int res = smtp_hello_world(&remote);
+    sock_tcp_t sock;
+
+    int res = smtp_hello_world(&sock, &remote);
     if (res < 0) {
         printf("Connect failed with error %d", res);
         return 1;

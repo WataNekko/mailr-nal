@@ -12,14 +12,15 @@ macro_rules! try_riot {
     };
 }
 
-static mut TCP_STACK: SockTcpClientStack = SockTcpClientStack;
-
 #[no_mangle]
-pub extern "C" fn smtp_hello_world(a: &riot_sys::sock_tcp_ep_t) -> i32 {
+pub extern "C" fn smtp_hello_world(
+    t: *mut riot_sys::sock_tcp_t,
+    a: &riot_sys::sock_tcp_ep_t,
+) -> i32 {
     let mut buffer = [0; 1024];
+    let stack: &mut SockTcpClientStack = unsafe { core::mem::transmute(t) };
 
-    let client =
-        SmtpClient::new(unsafe { &mut TCP_STACK }, &mut buffer).connect(SocketAddrWrapper::from(a));
+    let client = SmtpClient::new(stack, &mut buffer).connect(SocketAddrWrapper::from(a));
 
     client.unwrap();
 
