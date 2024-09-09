@@ -132,7 +132,17 @@ impl TcpClientStack for SockTcpClientStack {
         socket: &mut Self::TcpSocket,
         buffer: &mut [u8],
     ) -> nb::Result<usize, Self::Error> {
-        todo!()
+        unsafe {
+            riot_sys::sock_tcp_read(
+                &mut self.0,
+                buffer.as_mut_ptr() as _,
+                buffer.len().try_into().unwrap_or(u32::MAX),
+                0,
+            )
+        }
+        .negative_to_error()
+        .map_err(|e| Self::Error::from(e).again_is_wouldblock())
+        .map(|n| n as _)
     }
 
     fn close(&mut self, socket: Self::TcpSocket) -> Result<(), Self::Error> {
