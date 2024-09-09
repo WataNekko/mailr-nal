@@ -124,7 +124,16 @@ impl TcpClientStack for SingleSockTcpStack {
         socket: &mut Self::TcpSocket,
         buffer: &[u8],
     ) -> nb::Result<usize, Self::Error> {
-        todo!()
+        unsafe {
+            riot_sys::sock_tcp_write(
+                &mut self.0,
+                buffer.as_ptr() as *const _,
+                buffer.len().try_into().unwrap_or(u32::MAX),
+            )
+        }
+        .negative_to_error()
+        .map_err(|e| Self::Error::from(e).again_is_wouldblock())
+        .map(|n| n as _)
     }
 
     fn receive(
