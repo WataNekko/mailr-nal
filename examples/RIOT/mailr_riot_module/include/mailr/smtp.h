@@ -1,6 +1,9 @@
-#ifndef MAILR_SMTP_H
-#define MAILR_SMTP_H
+#include "net/af.h"
+#include "net/ipv6/addr.h"
+#include "net/sock/tcp.h"
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
 
-void smtp_hello_world(void);
-
-#endif
+int32_t smtp_hello_world(const sock_tcp_ep_t *a);

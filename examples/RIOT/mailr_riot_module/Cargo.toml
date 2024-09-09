@@ -24,3 +24,5 @@ riot-wrappers = { version = "0.9.1", features = [
 ] }
 
 mailr-nal = { path = "../../../" }
+embedded-nal = "0.8.0"
+riot-sys = "0.7.13"

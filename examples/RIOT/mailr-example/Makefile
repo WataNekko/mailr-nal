@@ -15,6 +15,13 @@ DEVELHELP ?= 1
 # Change this to 0 show compiler invocation lines by default:
 QUIET ?= 1
 
+# Change these to set the address and port of the SMTP server
+SMTP_SERVER_IPV6_ADDR ?= fe80::5844:b4ff:fe1c:b066
+SMTP_SERVER_PORT ?= 2525
+
+CFLAGS += -DSMTP_SERVER_IPV6_ADDR=\"$(SMTP_SERVER_IPV6_ADDR)\"
+CFLAGS += -DSMTP_SERVER_PORT=$(SMTP_SERVER_PORT)
+
 # Modules to include:
 USEMODULE += netdev_default
 USEMODULE += auto_init_gnrc_netif

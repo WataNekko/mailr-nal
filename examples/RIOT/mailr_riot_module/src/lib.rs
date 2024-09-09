@@ -1,9 +1,4 @@
 #![no_std]
 
-use mailr_nal::smtp::SmtpClient;
-use riot_wrappers::println;
-
-#[no_mangle]
-pub extern "C" fn smtp_hello_world() {
-    println!("Hello World from Rust!");
-}
+pub mod ffi;
+mod nal;
