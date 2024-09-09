@@ -4,3 +4,5 @@
 
 # RIOT's build directories
 bin
+
+compile_commands.json
