@@ -135,7 +135,7 @@ impl TcpClientStack for SingleSockTcpStack {
         unsafe {
             riot_sys::sock_tcp_read(
                 &mut self.0,
-                buffer.as_mut_ptr() as _,
+                buffer.as_mut_ptr() as *mut _,
                 buffer.len().try_into().unwrap_or(u32::MAX),
                 0,
             )
