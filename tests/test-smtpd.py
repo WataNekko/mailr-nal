@@ -83,7 +83,7 @@ def main():
             return AuthResult(success=False, handled=False)
 
     # Create SMTP server
-    HOST = "localhost"
+    HOST = ""  # any interface
     PORT = int(os.getenv("PORT", 2525))
     controller = UnthreadedController(
         Debugging(),
