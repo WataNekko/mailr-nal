@@ -296,3 +296,14 @@ impl<E: TcpError> From<ResponseError<'_, E>> for SendError<E> {
         }
     }
 }
+
+pub mod ffi {
+    use core::ffi;
+
+    #[repr(C)]
+    #[allow(non_camel_case_types)]
+    pub struct smtp_session_t {
+        buffer: *mut ffi::c_uchar,
+        buffer_len: usize,
+    }
+}

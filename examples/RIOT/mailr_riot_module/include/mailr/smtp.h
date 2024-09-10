@@ -4,4 +4,13 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-int32_t smtp_hello_world(sock_tcp_t *t, const sock_tcp_ep_t *a);
+typedef struct smtp_session_t {
+    sock_tcp_t *sock;
+    uint8_t *buffer;
+} smtp_session_t;
+
+int32_t smtp_connect(struct smtp_session_t *session,
+                     sock_tcp_t *sock,
+                     unsigned char *buffer,
+                     uintptr_t buffer_len,
+                     const sock_tcp_ep_t *remote);

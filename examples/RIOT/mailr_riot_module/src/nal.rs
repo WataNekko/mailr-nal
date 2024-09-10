@@ -91,6 +91,7 @@ impl From<SocketAddrWrapper> for SocketAddr {
     }
 }
 
+// #[repr(C)]
 pub struct SingleSockTcpStack(riot_sys::sock_tcp_t);
 
 impl TcpClientStack for SingleSockTcpStack {

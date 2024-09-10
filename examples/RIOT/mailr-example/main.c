@@ -20,8 +20,10 @@ int main(void)
     }
 
     sock_tcp_t sock;
+    unsigned char buffer[BUFFER_SIZE];
+    smtp_session_t session;
 
-    int res = smtp_hello_world(&sock, &remote);
+    int res = smtp_connect(&session, &sock, buffer, BUFFER_SIZE, &remote);
     if (res < 0) {
         printf("Connect failed with error %d", res);
         return 1;

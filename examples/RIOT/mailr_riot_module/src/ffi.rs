@@ -1,4 +1,6 @@
-use mailr_nal::smtp::SmtpClient;
+use core::{ffi::c_uchar, slice};
+
+use mailr_nal::smtp::{SmtpClient, SmtpClientSession};
 
 use crate::nal::{SingleSockTcpStack, SocketAddrWrapper};
 
@@ -11,17 +13,31 @@ macro_rules! try_riot {
     };
 }
 
+#[repr(C)]
+#[allow(non_camel_case_types)]
+pub struct smtp_session_t {
+    sock: *mut SingleSockTcpStack,
+    buffer: *mut u8,
+}
+
 #[no_mangle]
-pub extern "C" fn smtp_hello_world(
-    t: *mut riot_sys::sock_tcp_t,
-    a: &riot_sys::sock_tcp_ep_t,
+pub extern "C" fn testtst(s: SmtpClientSession<SingleSockTcpStack>) {}
+
+#[no_mangle]
+pub extern "C" fn smtp_connect(
+    session: *mut smtp_session_t,
+    sock: *mut riot_sys::sock_tcp_t,
+    buffer: *mut c_uchar,
+    buffer_len: usize,
+    remote: &riot_sys::sock_tcp_ep_t,
 ) -> i32 {
-    let mut buffer = [0; 1024];
-    let stack: &mut SingleSockTcpStack = unsafe { core::mem::transmute(t) };
+    let stack: &mut SingleSockTcpStack = unsafe { core::mem::transmute(sock) };
+    let buffer = unsafe { slice::from_raw_parts_mut(buffer, buffer_len) };
+    let remote = SocketAddrWrapper::from(remote);
 
-    let client = SmtpClient::new(stack, &mut buffer).connect(SocketAddrWrapper::from(a));
+    let result = SmtpClient::new(stack, buffer).connect(remote);
 
-    client.unwrap();
+    let client = result.unwrap();
 
     0
 }

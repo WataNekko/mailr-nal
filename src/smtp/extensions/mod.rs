@@ -9,6 +9,7 @@ pub enum SmtpExtension {
     AuthLogin,
 }
 
+#[repr(C)]
 pub struct EhloInfo {
     pub extensions: EnumSet<SmtpExtension>,
 }
