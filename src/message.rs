@@ -22,6 +22,12 @@ impl<'a> Mailbox<'a> {
     }
 }
 
+impl<'a> AsRef<Mailbox<'a>> for Mailbox<'a> {
+    fn as_ref(&self) -> &Mailbox<'a> {
+        self
+    }
+}
+
 impl<'a> From<&'a str> for Mailbox<'a> {
     fn from(value: &'a str) -> Self {
         Self::new(value)
@@ -59,11 +65,12 @@ where
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct Mail<'a, To, Cc, Bcc>
+pub struct Mail<'a, Mb, To, Cc, Bcc>
 where
-    To: Iterator<Item = &'a Mailbox<'a>>,
-    Cc: Iterator<Item = &'a Mailbox<'a>>,
-    Bcc: Iterator<Item = &'a Mailbox<'a>>,
+    Mb: AsRef<Mailbox<'a>>,
+    To: Iterator<Item = Mb>,
+    Cc: Iterator<Item = Mb>,
+    Bcc: Iterator<Item = Mb>,
 {
     pub from: Option<Mailbox<'a>>,
     pub to: To,
@@ -75,7 +82,7 @@ where
 
 type NoMailboxIter<'a> = core::option::Iter<'a, Mailbox<'a>>;
 
-impl<'a> Mail<'a, NoMailboxIter<'a>, NoMailboxIter<'a>, NoMailboxIter<'a>> {
+impl<'a> Mail<'a, &'a Mailbox<'a>, NoMailboxIter<'a>, NoMailboxIter<'a>, NoMailboxIter<'a>> {
     pub fn new() -> Self {
         Self {
             from: None,
@@ -88,20 +95,24 @@ impl<'a> Mail<'a, NoMailboxIter<'a>, NoMailboxIter<'a>, NoMailboxIter<'a>> {
     }
 }
 
-impl<'a, To, Cc, Bcc> Mail<'a, To, Cc, Bcc>
+impl<'a, Mb, To, Cc, Bcc> Mail<'a, Mb, To, Cc, Bcc>
 where
-    To: Iterator<Item = &'a Mailbox<'a>>,
-    Cc: Iterator<Item = &'a Mailbox<'a>>,
-    Bcc: Iterator<Item = &'a Mailbox<'a>>,
+    Mb: AsRef<Mailbox<'a>>,
+    To: Iterator<Item = Mb>,
+    Cc: Iterator<Item = Mb>,
+    Bcc: Iterator<Item = Mb>,
 {
     pub fn from(mut self, value: impl Into<Mailbox<'a>>) -> Self {
         self.from = Some(value.into());
         self
     }
 
-    pub fn replace_to<I>(self, value: impl IntoIterator<IntoIter = I>) -> (Mail<'a, I, Cc, Bcc>, To)
+    pub fn replace_to<I>(
+        self,
+        value: impl IntoIterator<IntoIter = I>,
+    ) -> (Mail<'a, Mb, I, Cc, Bcc>, To)
     where
-        I: Iterator<Item = &'a Mailbox<'a>>,
+        I: Iterator<Item = Mb>,
     {
         let mail = Mail {
             from: self.from,
@@ -115,16 +126,19 @@ where
         (mail, self.to)
     }
 
-    pub fn to<I>(self, value: impl IntoIterator<IntoIter = I>) -> Mail<'a, I, Cc, Bcc>
+    pub fn to<I>(self, value: impl IntoIterator<IntoIter = I>) -> Mail<'a, Mb, I, Cc, Bcc>
     where
-        I: Iterator<Item = &'a Mailbox<'a>>,
+        I: Iterator<Item = Mb>,
     {
         self.replace_to(value).0
     }
 
-    pub fn replace_cc<I>(self, value: impl IntoIterator<IntoIter = I>) -> (Mail<'a, To, I, Bcc>, Cc)
+    pub fn replace_cc<I>(
+        self,
+        value: impl IntoIterator<IntoIter = I>,
+    ) -> (Mail<'a, Mb, To, I, Bcc>, Cc)
     where
-        I: Iterator<Item = &'a Mailbox<'a>>,
+        I: Iterator<Item = Mb>,
     {
         let mail = Mail {
             from: self.from,
@@ -138,9 +152,9 @@ where
         (mail, self.cc)
     }
 
-    pub fn cc<I>(self, value: impl IntoIterator<IntoIter = I>) -> Mail<'a, To, I, Bcc>
+    pub fn cc<I>(self, value: impl IntoIterator<IntoIter = I>) -> Mail<'a, Mb, To, I, Bcc>
     where
-        I: Iterator<Item = &'a Mailbox<'a>>,
+        I: Iterator<Item = Mb>,
     {
         self.replace_cc(value).0
     }
@@ -148,9 +162,9 @@ where
     pub fn replace_bcc<I>(
         self,
         value: impl IntoIterator<IntoIter = I>,
-    ) -> (Mail<'a, To, Cc, I>, Bcc)
+    ) -> (Mail<'a, Mb, To, Cc, I>, Bcc)
     where
-        I: Iterator<Item = &'a Mailbox<'a>>,
+        I: Iterator<Item = Mb>,
     {
         let mail = Mail {
             from: self.from,
@@ -164,9 +178,9 @@ where
         (mail, self.bcc)
     }
 
-    pub fn bcc<I>(self, value: impl IntoIterator<IntoIter = I>) -> Mail<'a, To, Cc, I>
+    pub fn bcc<I>(self, value: impl IntoIterator<IntoIter = I>) -> Mail<'a, Mb, To, Cc, I>
     where
-        I: Iterator<Item = &'a Mailbox<'a>>,
+        I: Iterator<Item = Mb>,
     {
         self.replace_bcc(value).0
     }

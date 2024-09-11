@@ -250,14 +250,15 @@ where
     }
 
     #[inline]
-    pub fn send<'a, To, Cc, Bcc>(
+    pub fn send<'a, Mb, To, Cc, Bcc>(
         &mut self,
-        mail: Mail<'a, To, Cc, Bcc>,
+        mail: Mail<'a, Mb, To, Cc, Bcc>,
     ) -> Result<(), SendError<T::Error>>
     where
-        To: Iterator<Item = &'a Mailbox<'a>> + Clone,
-        Cc: Iterator<Item = &'a Mailbox<'a>> + Clone,
-        Bcc: Iterator<Item = &'a Mailbox<'a>>,
+        Mb: AsRef<Mailbox<'a>>,
+        To: Iterator<Item = Mb> + Clone,
+        Cc: Iterator<Item = Mb> + Clone,
+        Bcc: Iterator<Item = Mb>,
     {
         let sender = mail.from.map(|m| m.address);
 
@@ -267,7 +268,7 @@ where
             .clone()
             .chain(mail.cc.clone())
             .chain(bcc)
-            .map(|m| m.address);
+            .map(|m| m.as_ref().address);
 
         let envelope = Envelope::new(sender, receivers);
 

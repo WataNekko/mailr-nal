@@ -231,11 +231,12 @@ pub trait DataMessage {
     }
 }
 
-impl<'a, To, Cc, Bcc> DataMessage for Mail<'a, To, Cc, Bcc>
+impl<'a, Mb, To, Cc, Bcc> DataMessage for Mail<'a, Mb, To, Cc, Bcc>
 where
-    To: Iterator<Item = &'a Mailbox<'a>>,
-    Cc: Iterator<Item = &'a Mailbox<'a>>,
-    Bcc: Iterator<Item = &'a Mailbox<'a>>,
+    Mb: AsRef<Mailbox<'a>>,
+    To: Iterator<Item = Mb>,
+    Cc: Iterator<Item = Mb>,
+    Bcc: Iterator<Item = Mb>,
 {
     fn write_to<W: Write>(mut self, w: &mut BufWriter<W>) -> Result<(), W::Error> {
         if let Some(from) = self.from {
@@ -243,17 +244,17 @@ where
         }
 
         if let Some(first) = self.to.next() {
-            write!(w, "To:{}", first)?;
+            write!(w, "To:{}", first.as_ref())?;
             for rcv in self.to {
-                write!(w, ",{}", rcv)?;
+                write!(w, ",{}", rcv.as_ref())?;
             }
             write!(w, "\r\n")?;
         }
 
         if let Some(first) = self.cc.next() {
-            write!(w, "Cc:{}", first)?;
+            write!(w, "Cc:{}", first.as_ref())?;
             for rcv in self.cc {
-                write!(w, ",{}", rcv)?;
+                write!(w, ",{}", rcv.as_ref())?;
             }
             write!(w, "\r\n")?;
         }
