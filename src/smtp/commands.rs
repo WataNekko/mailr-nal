@@ -8,7 +8,7 @@ use super::{
 };
 use crate::{
     io::{BufWriter, TcpStream, WithBuf, Write},
-    message::Mail,
+    message::{Mail, Mailbox},
 };
 
 /// An SMTP command that can be executed (e.g., EHLO, MAIL, RCPT, etc.).
@@ -231,23 +231,28 @@ pub trait DataMessage {
     }
 }
 
-impl DataMessage for &Mail<'_> {
-    fn write_to<W: Write>(self, w: &mut BufWriter<W>) -> Result<(), W::Error> {
+impl<'a, To, Cc, Bcc> DataMessage for Mail<'a, To, Cc, Bcc>
+where
+    To: Iterator<Item = &'a Mailbox<'a>>,
+    Cc: Iterator<Item = &'a Mailbox<'a>>,
+    Bcc: Iterator<Item = &'a Mailbox<'a>>,
+{
+    fn write_to<W: Write>(mut self, w: &mut BufWriter<W>) -> Result<(), W::Error> {
         if let Some(from) = self.from {
             write!(w, "From:{}\r\n", from)?;
         }
 
-        if let Some((first, rest)) = self.to.split_first() {
+        if let Some(first) = self.to.next() {
             write!(w, "To:{}", first)?;
-            for rcv in rest {
+            for rcv in self.to {
                 write!(w, ",{}", rcv)?;
             }
             write!(w, "\r\n")?;
         }
 
-        if let Some((first, rest)) = self.cc.split_first() {
+        if let Some(first) = self.cc.next() {
             write!(w, "Cc:{}", first)?;
-            for rcv in rest {
+            for rcv in self.cc {
                 write!(w, ",{}", rcv)?;
             }
             write!(w, "\r\n")?;

@@ -59,45 +59,116 @@ where
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct Mail<'a> {
+pub struct Mail<'a, To, Cc, Bcc>
+where
+    To: Iterator<Item = &'a Mailbox<'a>>,
+    Cc: Iterator<Item = &'a Mailbox<'a>>,
+    Bcc: Iterator<Item = &'a Mailbox<'a>>,
+{
     pub from: Option<Mailbox<'a>>,
-    pub to: &'a [Mailbox<'a>],
-    pub cc: &'a [Mailbox<'a>],
-    pub bcc: &'a [Mailbox<'a>],
+    pub to: To,
+    pub cc: Cc,
+    pub bcc: Bcc,
     pub subject: Option<&'a str>,
     pub body: Option<&'a str>,
 }
 
-impl<'a> Mail<'a> {
+type NoMailboxIter<'a> = core::option::Iter<'a, Mailbox<'a>>;
+
+impl<'a> Mail<'a, NoMailboxIter<'a>, NoMailboxIter<'a>, NoMailboxIter<'a>> {
     pub fn new() -> Self {
         Self {
             from: None,
-            to: &[],
-            cc: &[],
-            bcc: &[],
+            to: None.iter(),
+            cc: None.iter(),
+            bcc: None.iter(),
             subject: None,
             body: None,
         }
     }
+}
 
+impl<'a, To, Cc, Bcc> Mail<'a, To, Cc, Bcc>
+where
+    To: Iterator<Item = &'a Mailbox<'a>>,
+    Cc: Iterator<Item = &'a Mailbox<'a>>,
+    Bcc: Iterator<Item = &'a Mailbox<'a>>,
+{
     pub fn from(mut self, value: impl Into<Mailbox<'a>>) -> Self {
         self.from = Some(value.into());
         self
     }
 
-    pub fn to(mut self, value: &'a [Mailbox<'a>]) -> Self {
-        self.to = value;
-        self
+    pub fn replace_to<I>(self, value: impl IntoIterator<IntoIter = I>) -> (Mail<'a, I, Cc, Bcc>, To)
+    where
+        I: Iterator<Item = &'a Mailbox<'a>>,
+    {
+        let mail = Mail {
+            from: self.from,
+            to: value.into_iter(),
+            cc: self.cc,
+            bcc: self.bcc,
+            subject: self.subject,
+            body: self.body,
+        };
+
+        (mail, self.to)
     }
 
-    pub fn cc(mut self, value: &'a [Mailbox<'a>]) -> Self {
-        self.cc = value;
-        self
+    pub fn to<I>(self, value: impl IntoIterator<IntoIter = I>) -> Mail<'a, I, Cc, Bcc>
+    where
+        I: Iterator<Item = &'a Mailbox<'a>>,
+    {
+        self.replace_to(value).0
     }
 
-    pub fn bcc(mut self, value: &'a [Mailbox<'a>]) -> Self {
-        self.bcc = value;
-        self
+    pub fn replace_cc<I>(self, value: impl IntoIterator<IntoIter = I>) -> (Mail<'a, To, I, Bcc>, Cc)
+    where
+        I: Iterator<Item = &'a Mailbox<'a>>,
+    {
+        let mail = Mail {
+            from: self.from,
+            to: self.to,
+            cc: value.into_iter(),
+            bcc: self.bcc,
+            subject: self.subject,
+            body: self.body,
+        };
+
+        (mail, self.cc)
+    }
+
+    pub fn cc<I>(self, value: impl IntoIterator<IntoIter = I>) -> Mail<'a, To, I, Bcc>
+    where
+        I: Iterator<Item = &'a Mailbox<'a>>,
+    {
+        self.replace_cc(value).0
+    }
+
+    pub fn replace_bcc<I>(
+        self,
+        value: impl IntoIterator<IntoIter = I>,
+    ) -> (Mail<'a, To, Cc, I>, Bcc)
+    where
+        I: Iterator<Item = &'a Mailbox<'a>>,
+    {
+        let mail = Mail {
+            from: self.from,
+            to: self.to,
+            cc: self.cc,
+            bcc: value.into_iter(),
+            subject: self.subject,
+            body: self.body,
+        };
+
+        (mail, self.bcc)
+    }
+
+    pub fn bcc<I>(self, value: impl IntoIterator<IntoIter = I>) -> Mail<'a, To, Cc, I>
+    where
+        I: Iterator<Item = &'a Mailbox<'a>>,
+    {
+        self.replace_bcc(value).0
     }
 
     pub fn subject(mut self, value: impl Into<Option<&'a str>>) -> Self {

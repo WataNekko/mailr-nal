@@ -116,7 +116,7 @@ mod send {
             .subject("Test mail")
             .body("Blah blah blah...\r\n..etc. etc. etc.");
 
-        client.send(&mail).expect("sent first message successfully");
+        client.send(mail).expect("sent first message successfully");
     }
 
     #[test]
@@ -141,13 +141,13 @@ mod send {
             .subject("Test mail")
             .body("Blah blah blah...\r\n..etc. etc. etc.");
 
-        client.send(&mail).expect("sent first message successfully");
+        client
+            .send(mail.clone())
+            .expect("sent first message successfully");
 
         let mail = mail.subject("Test mail 2");
 
-        client
-            .send(&mail)
-            .expect("sent second message successfully");
+        client.send(mail).expect("sent second message successfully");
     }
 
     #[test]

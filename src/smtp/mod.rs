@@ -14,7 +14,7 @@ use self::{
 use crate::{
     auth::Credential,
     io::{TcpStream, WithBuf},
-    message::{Envelope, Mail},
+    message::{Envelope, Mail, Mailbox},
 };
 
 pub struct SmtpClient;
@@ -250,13 +250,23 @@ where
     }
 
     #[inline]
-    pub fn send(&mut self, mail: &Mail) -> Result<(), SendError<T::Error>> {
+    pub fn send<'a, To, Cc, Bcc>(
+        &mut self,
+        mail: Mail<'a, To, Cc, Bcc>,
+    ) -> Result<(), SendError<T::Error>>
+    where
+        To: Iterator<Item = &'a Mailbox<'a>> + Clone,
+        Cc: Iterator<Item = &'a Mailbox<'a>> + Clone,
+        Bcc: Iterator<Item = &'a Mailbox<'a>>,
+    {
         let sender = mail.from.map(|m| m.address);
+
+        let (mail, bcc) = mail.replace_bcc(None);
         let receivers = mail
             .to
-            .iter()
-            .chain(mail.cc)
-            .chain(mail.bcc)
+            .clone()
+            .chain(mail.cc.clone())
+            .chain(bcc)
             .map(|m| m.address);
 
         let envelope = Envelope::new(sender, receivers);
