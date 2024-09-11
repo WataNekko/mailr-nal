@@ -73,7 +73,8 @@ int main(void)
         .sock = &sock,
         .buffer = buffer,
         .buffer_len = BUFFER_SIZE,
-        .remote = &remote};
+        .remote = &remote,
+        .client_id = "RIOT.host"};
 
     printf("Connecting to SMTP server at [");
     ipv6_addr_print((ipv6_addr_t *)&remote.addr);

@@ -28,7 +28,8 @@ typedef struct smtp_connect_info_t {
     uint8_t *buffer;
     uintptr_t buffer_len;
     const sock_tcp_ep_t *remote;
-    const struct smtp_auth_credential_t *auth;
+    const smtp_auth_credential_t *auth;
+    const char *client_id;
 } smtp_connect_info_t;
 
 typedef struct mailr_mailbox_t {

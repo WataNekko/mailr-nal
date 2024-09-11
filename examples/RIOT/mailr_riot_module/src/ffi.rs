@@ -8,7 +8,7 @@ use core::{
 use mailr_nal::{
     auth::Credential,
     message::{Envelope, Mail, Mailbox},
-    smtp::{SmtpClient, SmtpClientSession},
+    smtp::{ClientId, SmtpClient, SmtpClientSession},
 };
 
 use crate::nal::{SingleSockTcpStack, SocketAddrWrapper};
@@ -48,6 +48,14 @@ impl<T> AsRef<[T]> for FFISlice<T> {
     }
 }
 
+fn ffi_to_str(value: *const ffi::c_char) -> Option<Result<&'static str, Utf8Error>> {
+    if value.is_null() {
+        None
+    } else {
+        Some(unsafe { CStr::from_ptr(value) }.to_str())
+    }
+}
+
 pub type smtp_session_t<'a> = SmtpClientSession<'a, SingleSockTcpStack, FFISlice<u8>>;
 
 #[repr(C)]
@@ -59,8 +67,8 @@ pub struct smtp_auth_credential_t {
 impl From<&smtp_auth_credential_t> for Option<Credential<'_>> {
     fn from(value: &smtp_auth_credential_t) -> Self {
         let cred = Credential {
-            username: ffi_to_str(value.username).transpose().ok().flatten()?,
-            password: ffi_to_str(value.password).transpose().ok().flatten()?,
+            username: ffi_to_str(value.username).and_then(Result::ok)?,
+            password: ffi_to_str(value.password).and_then(Result::ok)?,
         };
         Some(cred)
     }
@@ -73,6 +81,7 @@ pub struct smtp_connect_info_t {
     buffer_len: usize,
     remote: *const riot_sys::sock_tcp_ep_t,
     auth: *const smtp_auth_credential_t,
+    client_id: *const ffi::c_char,
 }
 
 #[no_mangle]
@@ -94,6 +103,11 @@ pub unsafe extern "C" fn smtp_connect(
 
     let result = SmtpClient::new(stack, buffer)
         .with_auth(info.auth.as_ref().and_then(Option::<Credential>::from))
+        .with_client_id(
+            ffi_to_str(info.client_id)
+                .and_then(Result::ok)
+                .map(ClientId::from),
+        )
         .connect(remote);
     let client = result.unwrap();
 
@@ -107,14 +121,6 @@ pub unsafe extern "C" fn smtp_close(session: *mut smtp_session_t) -> ffi::c_int 
     session.read().close().unwrap();
 
     0
-}
-
-fn ffi_to_str(value: *const ffi::c_char) -> Option<Result<&'static str, Utf8Error>> {
-    if value.is_null() {
-        None
-    } else {
-        Some(unsafe { CStr::from_ptr(value) }.to_str())
-    }
 }
 
 #[repr(C)]
@@ -177,8 +183,8 @@ pub unsafe extern "C" fn smtp_send(
             to: to.as_ref().iter().filter_map(into_mailbox),
             cc: cc.as_ref().iter().filter_map(into_mailbox),
             bcc: bcc.as_ref().iter().filter_map(into_mailbox),
-            subject: ffi_to_str(*subject).transpose().unwrap(),
-            body: ffi_to_str(*body).transpose().unwrap(),
+            subject: ffi_to_str(*subject).and_then(Result::ok),
+            body: ffi_to_str(*body).and_then(Result::ok),
         }
     };
 
@@ -208,14 +214,14 @@ pub unsafe extern "C" fn smtp_send_raw(
     };
 
     let envelope = Envelope {
-        sender_addr: ffi_to_str(envelope.sender_addr).transpose().unwrap(),
+        sender_addr: ffi_to_str(envelope.sender_addr).and_then(Result::ok),
         receiver_addrs: envelope
             .receiver_addrs
             .as_ref()
             .iter()
-            .filter_map(|s| ffi_to_str(*s).transpose().ok().flatten()),
+            .filter_map(|s| ffi_to_str(*s).and_then(Result::ok)),
     };
-    let Some(data) = ffi_to_str(data).transpose().unwrap() else {
+    let Some(data) = ffi_to_str(data).and_then(Result::ok) else {
         panic!("ASD");
     };
 
