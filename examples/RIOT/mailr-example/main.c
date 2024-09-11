@@ -63,19 +63,23 @@ int main(void)
         return 1;
     }
 
+    // Connecting to the server
+
     smtp_session_t session;
     sock_tcp_t sock;
     uint8_t buffer[BUFFER_SIZE];
 
     printf("Connecting to SMTP server at [");
     ipv6_addr_print((ipv6_addr_t *)&remote.addr);
-    printf("]:%d through netif %d\n", remote.port, remote.netif);
+    printf("]:%d through netif %d\n\n", remote.port, remote.netif);
 
     res = smtp_connect(&session, &sock, buffer, BUFFER_SIZE, &remote);
     if (res < 0) {
         printf("Connect failed with error %d", res);
         return 1;
     }
+
+    // Sending email
 
     mailr_mailbox_t to[] = {{"Jones@foo.com", "Jones"}, {.address = "John@foo.com"}};
     mailr_mailbox_t cc[] = {{.address = "Green@foo.com", .name = "Green"}};
@@ -87,12 +91,14 @@ int main(void)
         .subject = "Test mail",
         .body = "Blah blah blah...\r\n..etc. etc. etc."};
 
-    printf("Sending email: \"%s\"\n", mail.subject);
+    printf("Sending email: \"%s\"\n\n", mail.subject);
     res = smtp_send(&session, &mail);
     if (res < 0) {
         printf("Send mail failed with error %d", res);
         return 1;
     }
+
+    // Sending second email
 
     mailr_mailbox_t bcc[] = {{.address = "Brown@foo.com"}};
 
@@ -100,14 +106,37 @@ int main(void)
     mail.bcc.len = 1;
     mail.subject = "Another test mail";
 
-    printf("Sending another: \"%s\"\n", mail.subject);
+    printf("Sending another mail: \"%s\"\n\n", mail.subject);
     res = smtp_send(&session, &mail);
     if (res < 0) {
         printf("Send mail failed with error %d", res);
         return 1;
     }
 
+    // Sending raw data
+
+    const char *receiver_addrs[] = {"janedoe@foo.com", "bar@baz.org"};
+    mailr_envelope_t envelope = {
+        .sender_addr = "johndoe@foo.com",
+        .receiver_addrs = {receiver_addrs, 2}};
+
+    const char *raw_msg_data = "From:<johndoe@foo.com>\r\n"
+                               "To:<janedoe@foo.com>\r\n"
+                               "Subject: Raw mail sending\r\n"
+                               "\r\n"
+                               "Blah blah blah...\r\n"
+                               "..etc. etc. etc.";
+
+    printf("Sending raw data: \"%s\"\n\n", raw_msg_data);
+    res = smtp_send_raw(&session, &envelope, raw_msg_data);
+    if (res < 0) {
+        printf("Send mail failed with error %d", res);
+        return 1;
+    }
+
     puts("Mails sent");
+
+    // Closing the session
 
     res = smtp_close(&session);
     if (res < 0) {

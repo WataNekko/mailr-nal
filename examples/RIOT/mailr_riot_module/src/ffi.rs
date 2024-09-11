@@ -6,7 +6,7 @@ use core::{
 };
 
 use mailr_nal::{
-    message::{Mail, Mailbox},
+    message::{Envelope, Mail, Mailbox},
     smtp::{SmtpClient, SmtpClientSession},
 };
 
@@ -76,6 +76,14 @@ pub unsafe extern "C" fn smtp_close(session: *mut smtp_session_t) -> i32 {
     0
 }
 
+fn ffi_to_str(value: *const ffi::c_char) -> Option<Result<&'static str, Utf8Error>> {
+    if value.is_null() {
+        None
+    } else {
+        Some(unsafe { CStr::from_ptr(value) }.to_str())
+    }
+}
+
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct mailr_mailbox_t {
@@ -87,17 +95,10 @@ impl TryFrom<&mailr_mailbox_t> for Option<Mailbox<'_>> {
     type Error = Utf8Error;
 
     fn try_from(value: &mailr_mailbox_t) -> Result<Self, Self::Error> {
-        let address = if value.address.is_null() {
+        let Some(address) = ffi_to_str(value.address).transpose()? else {
             return Ok(None);
-        } else {
-            unsafe { CStr::from_ptr(value.address) }.to_str()?
         };
-
-        let name = if value.name.is_null() {
-            None
-        } else {
-            Some(unsafe { CStr::from_ptr(value.name) }.to_str()?)
-        };
+        let name = ffi_to_str(value.name).transpose()?;
 
         Ok(Some(Mailbox { name, address }))
     }
@@ -143,20 +144,49 @@ pub unsafe extern "C" fn smtp_send(
             to: to.as_ref().iter().filter_map(into_mailbox),
             cc: cc.as_ref().iter().filter_map(into_mailbox),
             bcc: bcc.as_ref().iter().filter_map(into_mailbox),
-            subject: if subject.is_null() {
-                None
-            } else {
-                Some(unsafe { CStr::from_ptr(*subject).to_str().unwrap() })
-            },
-            body: if body.is_null() {
-                None
-            } else {
-                Some(unsafe { CStr::from_ptr(*body).to_str().unwrap() })
-            },
+            subject: ffi_to_str(*subject).transpose().unwrap(),
+            body: ffi_to_str(*body).transpose().unwrap(),
         }
     };
 
     session.send(mail).unwrap();
+
+    0
+}
+
+#[repr(C)]
+pub struct mailr_envelope_t {
+    pub sender_addr: *const ffi::c_char,
+    pub receiver_addrs: FFISlice<*const ffi::c_char>,
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn smtp_send_raw(
+    session: *mut smtp_session_t,
+    envelope: *const mailr_envelope_t,
+    data: *const ffi::c_char,
+) -> i32 {
+    let Some(session) = session.as_mut() else {
+        panic!("WHAT")
+    };
+
+    let Some(envelope) = envelope.as_ref() else {
+        panic!("ASS")
+    };
+
+    let envelope = Envelope {
+        sender_addr: ffi_to_str(envelope.sender_addr).transpose().unwrap(),
+        receiver_addrs: envelope
+            .receiver_addrs
+            .as_ref()
+            .iter()
+            .filter_map(|s| ffi_to_str(*s).transpose().ok().flatten()),
+    };
+    let Some(data) = ffi_to_str(data).transpose().unwrap() else {
+        panic!("ASD");
+    };
+
+    session.send_raw(envelope, data).unwrap();
 
     0
 }

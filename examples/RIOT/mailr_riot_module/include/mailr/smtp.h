@@ -18,14 +18,6 @@ typedef struct smtp_session_t {
     smtp_ehlo_info_t ehlo_info;
 } smtp_session_t;
 
-int32_t smtp_connect(smtp_session_t *session,
-                     sock_tcp_t *sock,
-                     uint8_t *buffer,
-                     uintptr_t buffer_len,
-                     const sock_tcp_ep_t *remote);
-
-int32_t smtp_close(smtp_session_t *session);
-
 typedef struct mailr_mailbox_t {
     const char *address;
     const char *name;
@@ -45,6 +37,28 @@ typedef struct mailr_message_t {
     const char *body;
 } mailr_message_t;
 
+typedef struct mailr_envelope_receiver_addrs_t {
+    const char **addrs;
+    size_t len;
+} mailr_envelope_receiver_addrs_t;
+
+typedef struct mailr_envelope_t {
+    const char *sender_addr;
+    mailr_envelope_receiver_addrs_t receiver_addrs;
+} mailr_envelope_t;
+
+int32_t smtp_connect(smtp_session_t *session,
+                     sock_tcp_t *sock,
+                     uint8_t *buffer,
+                     uintptr_t buffer_len,
+                     const sock_tcp_ep_t *remote);
+
+int32_t smtp_close(smtp_session_t *session);
+
 int32_t smtp_send(smtp_session_t *session, const mailr_message_t *mail);
+
+int32_t smtp_send_raw(smtp_session_t *session,
+                      const mailr_envelope_t *envelope,
+                      const char *data);
 
 #endif
