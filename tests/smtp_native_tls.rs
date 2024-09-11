@@ -196,7 +196,7 @@ mod connect {
         let mut stack = tls::TlsStack::new(tls_cert);
         let mut buf = [0; 1024];
 
-        let _client = SmtpClient::new(&mut stack, &mut buf)
+        let _client = SmtpClient::new(&mut stack, &mut buf[..])
             .connect(([127, 0, 0, 1], tls_port))
             .expect("connected without authentication");
     }
@@ -214,7 +214,7 @@ mod connect {
         let mut stack = tls::TlsStack::new(tls_cert);
         let mut buf = [0; 1024];
 
-        let _client = SmtpClient::new(&mut stack, &mut buf)
+        let _client = SmtpClient::new(&mut stack, &mut buf[..])
             .with_auth(Some(Credential::new(&username, &password)))
             .connect(([127, 0, 0, 1], tls_port))
             .expect("should authenticate successfully");

@@ -13,7 +13,7 @@ mod connect {
         let mut stack = std_embedded_nal::Stack;
         let mut buf = [0; 1024];
 
-        let _client = SmtpClient::new(&mut stack, &mut buf)
+        let _client = SmtpClient::new(&mut stack, &mut buf[..])
             .connect(([127, 0, 0, 1], plain_port))
             .expect("connected without authentication");
     }
@@ -26,7 +26,7 @@ mod connect {
         let mut buf = [0; 1024];
         const CLIENT_ID: &str = "example.com";
 
-        let _ = SmtpClient::new(&mut stack, &mut buf)
+        let _ = SmtpClient::new(&mut stack, &mut buf[..])
             .with_client_id(Some(ClientId::new(CLIENT_ID)))
             .with_client_id(ClientId::new(CLIENT_ID))
             .with_client_id(Some(CLIENT_ID.into()))
@@ -46,7 +46,7 @@ mod connect {
         let mut stack = std_embedded_nal::Stack;
         let mut buf = [0; 1024];
 
-        let result = SmtpClient::new(&mut stack, &mut buf)
+        let result = SmtpClient::new(&mut stack, &mut buf[..])
             .with_auth(Some(Credential::new(&username, &password)))
             .connect(([127, 0, 0, 1], plain_port));
 
@@ -65,7 +65,7 @@ mod connect {
         let mut dns = std_embedded_nal::Stack;
         let mut buf = [0; 1024];
 
-        let _client = SmtpClient::new(&mut stack, &mut buf)
+        let _client = SmtpClient::new(&mut stack, &mut buf[..])
             .connect_with_hostname(&mut dns, "localhost", plain_port)
             .expect("connected to hostname");
     }
@@ -101,7 +101,7 @@ mod send {
         let mut stack = std_embedded_nal::Stack;
         let mut buf = [0; 1024];
 
-        let mut client = SmtpClient::new(&mut stack, &mut buf)
+        let mut client = SmtpClient::new(&mut stack, &mut buf[..])
             .connect(([127, 0, 0, 1], plain_port))
             .unwrap();
 
@@ -126,7 +126,7 @@ mod send {
         let mut stack = std_embedded_nal::Stack;
         let mut buf = [0; 1024];
 
-        let mut client = SmtpClient::new(&mut stack, &mut buf)
+        let mut client = SmtpClient::new(&mut stack, &mut buf[..])
             .connect(([127, 0, 0, 1], plain_port))
             .unwrap();
 
@@ -157,7 +157,7 @@ mod send {
         let mut stack = std_embedded_nal::Stack;
         let mut buf = [0; 1024];
 
-        let mut client = SmtpClient::new(&mut stack, &mut buf)
+        let mut client = SmtpClient::new(&mut stack, &mut buf[..])
             .connect(([127, 0, 0, 1], plain_port))
             .unwrap();
 
@@ -189,7 +189,7 @@ mod send {
         let mut stack = std_embedded_nal::Stack;
         let mut buf = [0; 1024];
 
-        let client = SmtpClient::new(&mut stack, &mut buf)
+        let client = SmtpClient::new(&mut stack, &mut buf[..])
             .connect(([127, 0, 0, 1], plain_port))
             .unwrap();
 

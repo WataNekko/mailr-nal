@@ -20,9 +20,10 @@ use crate::{
 pub struct SmtpClient;
 
 impl SmtpClient {
-    pub fn new<'a, T>(stack: &'a mut T, buffer: &'a mut [u8]) -> SmtpClientConnector<'a, T>
+    pub fn new<'a, T, B>(stack: &'a mut T, buffer: B) -> SmtpClientConnector<'a, T, B>
     where
         T: TcpClientStack,
+        B: AsMut<[u8]>,
     {
         SmtpClientConnector {
             stack,
@@ -33,19 +34,21 @@ impl SmtpClient {
     }
 }
 
-pub struct SmtpClientConnector<'a, T>
+pub struct SmtpClientConnector<'a, T, B>
 where
     T: TcpClientStack,
+    B: AsMut<[u8]>,
 {
     stack: &'a mut T,
-    buffer: &'a mut [u8],
+    buffer: B,
     auth: Option<Credential<'a>>,
     client_id: Option<ClientId<'a>>,
 }
 
-impl<'a, T> SmtpClientConnector<'a, T>
+impl<'a, T, B> SmtpClientConnector<'a, T, B>
 where
     T: TcpClientStack,
+    B: AsMut<[u8]>,
 {
     pub fn with_auth(mut self, value: impl Into<Option<Credential<'a>>>) -> Self {
         self.auth = value.into();
@@ -61,7 +64,7 @@ where
     pub fn connect(
         self,
         remote: impl Into<SocketAddr>,
-    ) -> Result<SmtpClientSession<'a, T>, ConnectError<T::Error>> {
+    ) -> Result<SmtpClientSession<'a, T, B>, ConnectError<T::Error>> {
         let Self {
             stack,
             buffer,
@@ -101,7 +104,7 @@ where
         dns: &mut D,
         hostname: &str,
         port: u16,
-    ) -> Result<SmtpClientSession<'a, T>, ConnectHostnameError<D::Error, T::Error>>
+    ) -> Result<SmtpClientSession<'a, T, B>, ConnectHostnameError<D::Error, T::Error>>
     where
         D: Dns,
     {
@@ -171,16 +174,27 @@ where
 
 /// For clean up on `connect` fails.
 /// FIXME: integrate this into `SmtpClientSession` struct would be nice.
-struct QuitOnDrop<'a, 'b, T: TcpClientStack>(WithBuf<'a, TcpStream<'b, T>>);
+struct QuitOnDrop<'a, T, B>(WithBuf<TcpStream<'a, T>, B>)
+where
+    T: TcpClientStack,
+    B: AsMut<[u8]>;
 
-impl<T: TcpClientStack> Drop for QuitOnDrop<'_, '_, T> {
+impl<T, B> Drop for QuitOnDrop<'_, T, B>
+where
+    T: TcpClientStack,
+    B: AsMut<[u8]>,
+{
     fn drop(&mut self) {
         let _ = Quit.execute(&mut self.0);
     }
 }
 
-impl<'a, 'b, T: TcpClientStack> QuitOnDrop<'a, 'b, T> {
-    pub fn into_inner(self) -> WithBuf<'a, TcpStream<'b, T>> {
+impl<'a, T, B> QuitOnDrop<'a, T, B>
+where
+    T: TcpClientStack,
+    B: AsMut<[u8]>,
+{
+    pub fn into_inner(self) -> WithBuf<TcpStream<'a, T>, B> {
         let me = ManuallyDrop::new(self);
 
         // SAFETY: safe to extract inner as it's never touched again otherwise.
@@ -188,25 +202,31 @@ impl<'a, 'b, T: TcpClientStack> QuitOnDrop<'a, 'b, T> {
     }
 }
 
-pub struct SmtpClientSession<'a, T>
+pub struct SmtpClientSession<'a, T, B>
 where
     T: TcpClientStack,
+    B: AsMut<[u8]>,
 {
-    stream: WithBuf<'a, TcpStream<'a, T>>,
+    stream: WithBuf<TcpStream<'a, T>, B>,
     #[allow(unused)]
     ehlo_info: EhloInfo,
 }
 
-impl<'a, T> Debug for SmtpClientSession<'a, T>
+impl<'a, T, B> Debug for SmtpClientSession<'a, T, B>
 where
     T: TcpClientStack,
+    B: AsMut<[u8]>,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "SmtpClientSession")
     }
 }
 
-impl<T: TcpClientStack> SmtpClientSession<'_, T> {
+impl<T, B> SmtpClientSession<'_, T, B>
+where
+    T: TcpClientStack,
+    B: AsMut<[u8]>,
+{
     fn send_internal<S, I>(
         &mut self,
         envelope: Envelope<S, I>,
@@ -266,7 +286,11 @@ impl<T: TcpClientStack> SmtpClientSession<'_, T> {
     }
 }
 
-impl<T: TcpClientStack> Drop for SmtpClientSession<'_, T> {
+impl<T, B> Drop for SmtpClientSession<'_, T, B>
+where
+    T: TcpClientStack,
+    B: AsMut<[u8]>,
+{
     fn drop(&mut self) {
         let _ = Quit.execute(&mut self.stream);
     }

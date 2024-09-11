@@ -7,22 +7,24 @@ pub use write::*;
 mod stream;
 pub use stream::*;
 
-pub struct WithBuf<'a, T>(pub T, pub &'a mut [u8]);
+pub struct WithBuf<T, B: AsMut<[u8]>>(pub T, pub B);
 
-impl<'a, R> From<&'a mut WithBuf<'_, R>> for BufReader<'a, R>
+impl<'a, R, B> From<&'a mut WithBuf<R, B>> for BufReader<'a, R>
 where
     R: Read,
+    B: AsMut<[u8]>,
 {
-    fn from(value: &'a mut WithBuf<'_, R>) -> Self {
-        Self::new(&mut value.0, value.1)
+    fn from(value: &'a mut WithBuf<R, B>) -> Self {
+        Self::new(&mut value.0, value.1.as_mut())
     }
 }
 
-impl<'a, R> From<&'a mut WithBuf<'_, R>> for BufWriter<'a, R>
+impl<'a, R, B> From<&'a mut WithBuf<R, B>> for BufWriter<'a, R>
 where
     R: Write,
+    B: AsMut<[u8]>,
 {
-    fn from(value: &'a mut WithBuf<'_, R>) -> Self {
-        Self::new(&mut value.0, value.1)
+    fn from(value: &'a mut WithBuf<R, B>) -> Self {
+        Self::new(&mut value.0, value.1.as_mut())
     }
 }

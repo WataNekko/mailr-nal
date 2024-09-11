@@ -24,11 +24,15 @@ pub struct Auth<'cred, 'ehlo> {
     pub ehlo_info: &'ehlo EhloInfo,
 }
 
-impl<T: TcpClientStack> Command<T> for Auth<'_, '_> {
+impl<T, B> Command<T, B> for Auth<'_, '_>
+where
+    T: TcpClientStack,
+    B: AsMut<[u8]>,
+{
     type Output = ();
     type Error = ConnectError<T::Error>;
 
-    fn execute(self, stream: &mut WithBuf<TcpStream<T>>) -> Result<Self::Output, Self::Error> {
+    fn execute(self, stream: &mut WithBuf<TcpStream<T>, B>) -> Result<Self::Output, Self::Error> {
         let Self {
             credential,
             ehlo_info,
@@ -62,11 +66,15 @@ impl<T: TcpClientStack> Command<T> for Auth<'_, '_> {
 
 struct AuthPlain<'cred>(Credential<'cred>);
 
-impl<T: TcpClientStack> Command<T> for AuthPlain<'_> {
+impl<T, B> Command<T, B> for AuthPlain<'_>
+where
+    T: TcpClientStack,
+    B: AsMut<[u8]>,
+{
     type Output = ();
     type Error = ConnectError<T::Error>;
 
-    fn execute(self, stream: &mut WithBuf<TcpStream<T>>) -> Result<Self::Output, Self::Error> {
+    fn execute(self, stream: &mut WithBuf<TcpStream<T>, B>) -> Result<Self::Output, Self::Error> {
         let Self(Credential { username, password }) = self;
 
         // FIXME: The max credential length of 512 octets should be RFC compliant
@@ -102,11 +110,15 @@ impl<T: TcpClientStack> Command<T> for AuthPlain<'_> {
 
 struct AuthLogin<'cred>(Credential<'cred>);
 
-impl<T: TcpClientStack> Command<T> for AuthLogin<'_> {
+impl<T, B> Command<T, B> for AuthLogin<'_>
+where
+    T: TcpClientStack,
+    B: AsMut<[u8]>,
+{
     type Output = ();
     type Error = ConnectError<T::Error>;
 
-    fn execute(self, stream: &mut WithBuf<TcpStream<T>>) -> Result<Self::Output, Self::Error> {
+    fn execute(self, stream: &mut WithBuf<TcpStream<T>, B>) -> Result<Self::Output, Self::Error> {
         let Self(Credential { username, password }) = self;
 
         BufWriter::from(&mut *stream).write(b"AUTH LOGIN\r\n")?;

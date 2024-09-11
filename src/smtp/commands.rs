@@ -12,14 +12,15 @@ use crate::{
 };
 
 /// An SMTP command that can be executed (e.g., EHLO, MAIL, RCPT, etc.).
-pub trait Command<T>
+pub trait Command<T, B>
 where
     T: TcpClientStack,
+    B: AsMut<[u8]>,
 {
     type Output;
     type Error;
 
-    fn execute(self, stream: &mut WithBuf<TcpStream<T>>) -> Result<Self::Output, Self::Error>;
+    fn execute(self, stream: &mut WithBuf<TcpStream<T>, B>) -> Result<Self::Output, Self::Error>;
 }
 
 /// Domain or address literal that identifies the client (https://www.rfc-editor.org/rfc/rfc5321#section-4.1.1.1)
@@ -53,11 +54,15 @@ impl core::fmt::Display for ClientId<'_> {
 /// (https://www.rfc-editor.org/rfc/rfc5321#section-4.1.1.1).
 pub struct Ehlo<'a>(pub(crate) ClientId<'a>);
 
-impl<T: TcpClientStack> Command<T> for Ehlo<'_> {
+impl<T, B> Command<T, B> for Ehlo<'_>
+where
+    T: TcpClientStack,
+    B: AsMut<[u8]>,
+{
     type Output = EhloInfo;
     type Error = ConnectError<T::Error>;
 
-    fn execute(self, stream: &mut WithBuf<TcpStream<T>>) -> Result<Self::Output, Self::Error> {
+    fn execute(self, stream: &mut WithBuf<TcpStream<T>, B>) -> Result<Self::Output, Self::Error> {
         let Self(client_id) = self;
 
         {
@@ -117,11 +122,15 @@ impl<T: TcpClientStack> Command<T> for Ehlo<'_> {
 /// MAIL FROM command.
 pub struct MailFrom<'a>(pub Option<&'a str>);
 
-impl<T: TcpClientStack> Command<T> for MailFrom<'_> {
+impl<T, B> Command<T, B> for MailFrom<'_>
+where
+    T: TcpClientStack,
+    B: AsMut<[u8]>,
+{
     type Output = ();
     type Error = SendError<T::Error>;
 
-    fn execute(self, stream: &mut WithBuf<TcpStream<T>>) -> Result<Self::Output, Self::Error> {
+    fn execute(self, stream: &mut WithBuf<TcpStream<T>, B>) -> Result<Self::Output, Self::Error> {
         let sender = self.0.unwrap_or("");
 
         {
@@ -140,16 +149,17 @@ where
     S: AsRef<str>,
     I: Iterator<Item = S>;
 
-impl<T, S, I> Command<T> for RcptTo<S, I>
+impl<T, B, S, I> Command<T, B> for RcptTo<S, I>
 where
     T: TcpClientStack,
+    B: AsMut<[u8]>,
     S: AsRef<str>,
     I: Iterator<Item = S>,
 {
     type Output = ();
     type Error = SendError<T::Error>;
 
-    fn execute(self, stream: &mut WithBuf<TcpStream<T>>) -> Result<Self::Output, Self::Error> {
+    fn execute(self, stream: &mut WithBuf<TcpStream<T>, B>) -> Result<Self::Output, Self::Error> {
         for receiver in self.0 {
             {
                 let mut stream = BufWriter::from(&mut *stream);
@@ -165,11 +175,16 @@ where
 /// DATA command.
 pub struct Data<M: DataMessage>(pub M);
 
-impl<T: TcpClientStack, M: DataMessage> Command<T> for Data<M> {
+impl<T, B, M> Command<T, B> for Data<M>
+where
+    T: TcpClientStack,
+    B: AsMut<[u8]>,
+    M: DataMessage,
+{
     type Output = ();
     type Error = SendError<T::Error>;
 
-    fn execute(self, stream: &mut WithBuf<TcpStream<T>>) -> Result<Self::Output, Self::Error> {
+    fn execute(self, stream: &mut WithBuf<TcpStream<T>, B>) -> Result<Self::Output, Self::Error> {
         let message = self.0;
 
         BufWriter::from(&mut *stream).write(b"DATA\r\n")?;
@@ -270,11 +285,15 @@ impl DataMessage for &str {
 /// QUIT command
 pub struct Quit;
 
-impl<T: TcpClientStack> Command<T> for Quit {
+impl<T, B> Command<T, B> for Quit
+where
+    T: TcpClientStack,
+    B: AsMut<[u8]>,
+{
     type Output = ();
     type Error = T::Error;
 
-    fn execute(self, stream: &mut WithBuf<TcpStream<T>>) -> Result<Self::Output, Self::Error> {
+    fn execute(self, stream: &mut WithBuf<TcpStream<T>, B>) -> Result<Self::Output, Self::Error> {
         BufWriter::from(stream).write(b"QUIT\r\n")
     }
 }
