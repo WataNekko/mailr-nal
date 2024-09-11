@@ -11,9 +11,11 @@ use mailr_nal::{
     smtp::{ClientId, SmtpClient, SmtpClientSession},
 };
 
-use crate::nal::{SingleSockTcpStack, SocketAddrWrapper};
+use crate::{
+    error::TcpNumericError,
+    nal::{SingleSockTcpStack, SocketAddrWrapper},
+};
 
-#[cfg(hide)]
 macro_rules! try_riot {
     ($e: expr) => {
         match $e {
@@ -89,12 +91,16 @@ pub unsafe extern "C" fn smtp_connect(
     session: *mut smtp_session_t,
     info: *mut smtp_connect_info_t,
 ) -> ffi::c_int {
+    if session.is_null() {
+        return riot_wrappers::error::EINVAL.number() as _;
+    }
+
     let Some(info) = info.as_mut() else {
-        panic!("AS");
+        return riot_wrappers::error::EINVAL.number() as _;
     };
 
     let Some(remote) = info.remote.as_ref() else {
-        panic!("AS");
+        return riot_wrappers::error::EINVAL.number() as _;
     };
 
     let stack: &mut SingleSockTcpStack = core::mem::transmute(info.sock);
@@ -109,17 +115,16 @@ pub unsafe extern "C" fn smtp_connect(
                 .map(ClientId::from),
         )
         .connect(remote);
-    let client = result.unwrap();
+
+    let client = try_riot!(result.map_err(TcpNumericError::from));
 
     session.write(client);
-
     0
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn smtp_close(session: *mut smtp_session_t) -> ffi::c_int {
-    session.read().close().unwrap();
-
+    try_riot!(session.read().close());
     0
 }
 
@@ -160,7 +165,7 @@ pub unsafe extern "C" fn smtp_send(
     mail: *const mailr_message_t,
 ) -> ffi::c_int {
     let Some(session) = session.as_mut() else {
-        panic!("WHAT")
+        return riot_wrappers::error::EINVAL.number() as _;
     };
 
     let mail = {
@@ -173,13 +178,13 @@ pub unsafe extern "C" fn smtp_send(
             body,
         }) = mail.as_ref()
         else {
-            panic!("AS");
+            return riot_wrappers::error::EINVAL.number() as _;
         };
 
         let into_mailbox = |mb| Option::<Mailbox>::try_from(mb).ok().flatten();
 
         Mail {
-            from: from.try_into().unwrap(),
+            from: from.try_into().ok().flatten(),
             to: to.as_ref().iter().filter_map(into_mailbox),
             cc: cc.as_ref().iter().filter_map(into_mailbox),
             bcc: bcc.as_ref().iter().filter_map(into_mailbox),
@@ -188,8 +193,7 @@ pub unsafe extern "C" fn smtp_send(
         }
     };
 
-    session.send(mail).unwrap();
-
+    try_riot!(session.send(mail).map_err(TcpNumericError::from));
     0
 }
 
@@ -206,11 +210,11 @@ pub unsafe extern "C" fn smtp_send_raw(
     data: *const ffi::c_char,
 ) -> ffi::c_int {
     let Some(session) = session.as_mut() else {
-        panic!("WHAT")
+        return riot_wrappers::error::EINVAL.number() as _;
     };
 
     let Some(envelope) = envelope.as_ref() else {
-        panic!("ASS")
+        return riot_wrappers::error::EINVAL.number() as _;
     };
 
     let envelope = Envelope {
@@ -222,10 +226,11 @@ pub unsafe extern "C" fn smtp_send_raw(
             .filter_map(|s| ffi_to_str(*s).and_then(Result::ok)),
     };
     let Some(data) = ffi_to_str(data).and_then(Result::ok) else {
-        panic!("ASD");
+        return riot_wrappers::error::EINVAL.number() as _;
     };
 
-    session.send_raw(envelope, data).unwrap();
-
+    try_riot!(session
+        .send_raw(envelope, data)
+        .map_err(TcpNumericError::from));
     0
 }

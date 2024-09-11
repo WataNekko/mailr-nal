@@ -1,32 +1,9 @@
 use core::ptr::addr_of;
 
-use embedded_nal::{nb, SocketAddr, TcpClientStack, TcpError, TcpErrorKind};
-use riot_wrappers::error::{NegativeErrorExt, NumericError};
+use embedded_nal::{nb, SocketAddr, TcpClientStack};
+use riot_wrappers::error::NegativeErrorExt;
 
-#[derive(Debug)]
-pub struct TcpNumericError(NumericError);
-
-impl TcpNumericError {
-    pub fn number(&self) -> isize {
-        self.0.number()
-    }
-
-    pub fn again_is_wouldblock(self) -> nb::Error<Self> {
-        self.0.again_is_wouldblock().map(|e| Self(e))
-    }
-}
-
-impl TcpError for TcpNumericError {
-    fn kind(&self) -> TcpErrorKind {
-        TcpErrorKind::Other
-    }
-}
-
-impl From<NumericError> for TcpNumericError {
-    fn from(value: NumericError) -> Self {
-        Self(value)
-    }
-}
+use crate::error::TcpNumericError;
 
 pub(crate) struct SocketAddrWrapper(SocketAddr);
 
