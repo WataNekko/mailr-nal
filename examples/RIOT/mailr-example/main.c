@@ -77,7 +77,37 @@ int main(void)
         return 1;
     }
 
-    puts("Email sent");
+    mailr_mailbox_t to[] = {{"Jones@foo.com", "Jones"}, {.address = "John@foo.com"}};
+    mailr_mailbox_t cc[] = {{.address = "Green@foo.com", .name = "Green"}};
+
+    mailr_message_t mail = {
+        .from = {"Smith@bar.com"},
+        .to = {to, 2},
+        .cc = {cc, 1},
+        .subject = "Test mail",
+        .body = "Blah blah blah...\r\n..etc. etc. etc."};
+
+    printf("Sending email: \"%s\"\n", mail.subject);
+    res = smtp_send(&session, &mail);
+    if (res < 0) {
+        printf("Send mail failed with error %d", res);
+        return 1;
+    }
+
+    mailr_mailbox_t bcc[] = {{.address = "Brown@foo.com"}};
+
+    mail.bcc.data = bcc;
+    mail.bcc.len = 1;
+    mail.subject = "Another test mail";
+
+    printf("Sending another: \"%s\"\n", mail.subject);
+    res = smtp_send(&session, &mail);
+    if (res < 0) {
+        printf("Send mail failed with error %d", res);
+        return 1;
+    }
+
+    puts("Mails sent");
 
     res = smtp_close(&session);
     if (res < 0) {

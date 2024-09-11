@@ -26,4 +26,25 @@ int32_t smtp_connect(smtp_session_t *session,
 
 int32_t smtp_close(smtp_session_t *session);
 
+typedef struct mailr_mailbox_t {
+    const char *address;
+    const char *name;
+} mailr_mailbox_t;
+
+typedef struct mailr_mailbox_slice_t {
+    struct mailr_mailbox_t *data;
+    size_t len;
+} mailr_mailbox_slice_t;
+
+typedef struct mailr_message_t {
+    mailr_mailbox_t from;
+    mailr_mailbox_slice_t to;
+    mailr_mailbox_slice_t cc;
+    mailr_mailbox_slice_t bcc;
+    const char *subject;
+    const char *body;
+} mailr_message_t;
+
+int32_t smtp_send(smtp_session_t *session, const mailr_message_t *mail);
+
 #endif
