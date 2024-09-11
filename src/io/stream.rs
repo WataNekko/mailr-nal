@@ -4,6 +4,7 @@ use embedded_nal::{nb, SocketAddr, TcpClientStack};
 
 use super::{Read, Write};
 
+#[repr(C)]
 pub struct TcpStream<'a, T>
 where
     T: TcpClientStack,

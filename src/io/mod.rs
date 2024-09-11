@@ -7,6 +7,7 @@ pub use write::*;
 mod stream;
 pub use stream::*;
 
+#[repr(C)]
 pub struct WithBuf<T, B: AsMut<[u8]>>(pub T, pub B);
 
 impl<'a, R, B> From<&'a mut WithBuf<R, B>> for BufReader<'a, R>

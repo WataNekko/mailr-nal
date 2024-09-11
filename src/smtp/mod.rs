@@ -202,6 +202,7 @@ where
     }
 }
 
+#[repr(C)]
 pub struct SmtpClientSession<'a, T, B>
 where
     T: TcpClientStack,
