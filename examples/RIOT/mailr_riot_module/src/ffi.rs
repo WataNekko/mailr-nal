@@ -49,16 +49,36 @@ impl<T> AsRef<[T]> for FFISlice<T> {
 
 pub type smtp_session_t<'a> = SmtpClientSession<'a, SingleSockTcpStack, FFISlice<u8>>;
 
-#[no_mangle]
-pub unsafe extern "C" fn smtp_connect(
-    session: *mut smtp_session_t,
+#[repr(C)]
+pub struct smtp_auth_credential_t {
+    username: *const ffi::c_char,
+    password: *const ffi::c_char,
+}
+
+#[repr(C)]
+pub struct smtp_connect_info_t {
     sock: *mut riot_sys::sock_tcp_t,
     buffer: *mut u8,
     buffer_len: usize,
-    remote: &riot_sys::sock_tcp_ep_t,
-) -> i32 {
-    let stack: &mut SingleSockTcpStack = core::mem::transmute(sock);
-    let buffer = FFISlice::new(buffer, buffer_len);
+    remote: *const riot_sys::sock_tcp_ep_t,
+    auth: *const smtp_auth_credential_t,
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn smtp_connect(
+    session: *mut smtp_session_t,
+    info: *mut smtp_connect_info_t,
+) -> ffi::c_int {
+    let Some(info) = info.as_mut() else {
+        panic!("AS");
+    };
+
+    let Some(remote) = info.remote.as_ref() else {
+        panic!("AS");
+    };
+
+    let stack: &mut SingleSockTcpStack = core::mem::transmute(info.sock);
+    let buffer = FFISlice::new(info.buffer, info.buffer_len);
     let remote = SocketAddrWrapper::from(remote);
 
     let result = SmtpClient::new(stack, buffer).connect(remote);
@@ -70,7 +90,7 @@ pub unsafe extern "C" fn smtp_connect(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn smtp_close(session: *mut smtp_session_t) -> i32 {
+pub unsafe extern "C" fn smtp_close(session: *mut smtp_session_t) -> ffi::c_int {
     session.read().close().unwrap();
 
     0
@@ -119,7 +139,7 @@ pub struct mailr_message_t {
 pub unsafe extern "C" fn smtp_send(
     session: *mut smtp_session_t,
     mail: *const mailr_message_t,
-) -> i32 {
+) -> ffi::c_int {
     let Some(session) = session.as_mut() else {
         panic!("WHAT")
     };
@@ -165,7 +185,7 @@ pub unsafe extern "C" fn smtp_send_raw(
     session: *mut smtp_session_t,
     envelope: *const mailr_envelope_t,
     data: *const ffi::c_char,
-) -> i32 {
+) -> ffi::c_int {
     let Some(session) = session.as_mut() else {
         panic!("WHAT")
     };

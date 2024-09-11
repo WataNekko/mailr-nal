@@ -18,13 +18,26 @@ typedef struct smtp_session_t {
     smtp_ehlo_info_t ehlo_info;
 } smtp_session_t;
 
+typedef struct smtp_auth_credential_t {
+    const char *username;
+    const char *password;
+} smtp_auth_credential_t;
+
+typedef struct smtp_connect_info_t {
+    sock_tcp_t *sock;
+    uint8_t *buffer;
+    uintptr_t buffer_len;
+    const sock_tcp_ep_t *remote;
+    const struct smtp_auth_credential_t *auth;
+} smtp_connect_info_t;
+
 typedef struct mailr_mailbox_t {
     const char *address;
     const char *name;
 } mailr_mailbox_t;
 
 typedef struct mailr_mailbox_slice_t {
-    struct mailr_mailbox_t *data;
+    mailr_mailbox_t *data;
     size_t len;
 } mailr_mailbox_slice_t;
 
@@ -47,18 +60,14 @@ typedef struct mailr_envelope_t {
     mailr_envelope_receiver_addrs_t receiver_addrs;
 } mailr_envelope_t;
 
-int32_t smtp_connect(smtp_session_t *session,
-                     sock_tcp_t *sock,
-                     uint8_t *buffer,
-                     uintptr_t buffer_len,
-                     const sock_tcp_ep_t *remote);
+int smtp_connect(smtp_session_t *session, smtp_connect_info_t *data);
 
-int32_t smtp_close(smtp_session_t *session);
+int smtp_close(smtp_session_t *session);
 
-int32_t smtp_send(smtp_session_t *session, const mailr_message_t *mail);
+int smtp_send(smtp_session_t *session, const mailr_message_t *mail);
 
-int32_t smtp_send_raw(smtp_session_t *session,
-                      const mailr_envelope_t *envelope,
-                      const char *data);
+int smtp_send_raw(smtp_session_t *session,
+                  const mailr_envelope_t *envelope,
+                  const char *data);
 
 #endif

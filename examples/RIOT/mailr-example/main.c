@@ -69,11 +69,17 @@ int main(void)
     sock_tcp_t sock;
     uint8_t buffer[BUFFER_SIZE];
 
+    smtp_connect_info_t connect_info = {
+        .sock = &sock,
+        .buffer = buffer,
+        .buffer_len = BUFFER_SIZE,
+        .remote = &remote};
+
     printf("Connecting to SMTP server at [");
     ipv6_addr_print((ipv6_addr_t *)&remote.addr);
     printf("]:%d through netif %d\n\n", remote.port, remote.netif);
 
-    res = smtp_connect(&session, &sock, buffer, BUFFER_SIZE, &remote);
+    res = smtp_connect(&session, &connect_info);
     if (res < 0) {
         printf("Connect failed with error %d", res);
         return 1;
