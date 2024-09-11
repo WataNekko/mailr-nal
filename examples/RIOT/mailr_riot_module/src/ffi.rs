@@ -6,6 +6,7 @@ use core::{
 };
 
 use mailr_nal::{
+    auth::Credential,
     message::{Envelope, Mail, Mailbox},
     smtp::{SmtpClient, SmtpClientSession},
 };
@@ -55,6 +56,16 @@ pub struct smtp_auth_credential_t {
     password: *const ffi::c_char,
 }
 
+impl From<&smtp_auth_credential_t> for Option<Credential<'_>> {
+    fn from(value: &smtp_auth_credential_t) -> Self {
+        let cred = Credential {
+            username: ffi_to_str(value.username).transpose().ok().flatten()?,
+            password: ffi_to_str(value.password).transpose().ok().flatten()?,
+        };
+        Some(cred)
+    }
+}
+
 #[repr(C)]
 pub struct smtp_connect_info_t {
     sock: *mut riot_sys::sock_tcp_t,
@@ -81,7 +92,9 @@ pub unsafe extern "C" fn smtp_connect(
     let buffer = FFISlice::new(info.buffer, info.buffer_len);
     let remote = SocketAddrWrapper::from(remote);
 
-    let result = SmtpClient::new(stack, buffer).connect(remote);
+    let result = SmtpClient::new(stack, buffer)
+        .with_auth(info.auth.as_ref().and_then(Option::<Credential>::from))
+        .connect(remote);
     let client = result.unwrap();
 
     session.write(client);
