@@ -65,7 +65,7 @@ int main(void)
 
     // Connecting to the server
 
-    smtp_session_t session;
+    smtp_session_t session = SMTP_SESSION_UNCONNECTED;
     sock_tcp_t sock;
     uint8_t buffer[BUFFER_SIZE];
 

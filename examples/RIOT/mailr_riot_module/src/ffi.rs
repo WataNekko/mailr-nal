@@ -2,6 +2,7 @@
 
 use core::{
     ffi::{self, CStr},
+    mem::MaybeUninit,
     str::Utf8Error,
 };
 
@@ -95,6 +96,10 @@ pub unsafe extern "C" fn smtp_connect(
         return riot_wrappers::error::EINVAL.number() as _;
     }
 
+    if !(*(session as *const *const ffi::c_void)).is_null() {
+        return -(riot_sys::EISCONN as ffi::c_int);
+    }
+
     let Some(info) = info.as_mut() else {
         return riot_wrappers::error::EINVAL.number() as _;
     };
@@ -124,7 +129,16 @@ pub unsafe extern "C" fn smtp_connect(
 
 #[no_mangle]
 pub unsafe extern "C" fn smtp_close(session: *mut smtp_session_t) -> ffi::c_int {
-    try_riot!(session.read().close());
+    if session.is_null() {
+        return riot_wrappers::error::EINVAL.number() as _;
+    }
+    if (*(session as *const *const ffi::c_void)).is_null() {
+        return -(riot_sys::ENOTCONN as ffi::c_int);
+    }
+
+    try_riot!(session
+        .replace(core::mem::zeroed::<MaybeUninit<_>>().assume_init())
+        .close());
     0
 }
 
@@ -167,6 +181,10 @@ pub unsafe extern "C" fn smtp_send(
     let Some(session) = session.as_mut() else {
         return riot_wrappers::error::EINVAL.number() as _;
     };
+
+    if core::mem::transmute_copy::<_, *const ffi::c_void>(session).is_null() {
+        return -(riot_sys::ENOTCONN as ffi::c_int);
+    }
 
     let mail = {
         let Some(mailr_message_t {
@@ -213,6 +231,10 @@ pub unsafe extern "C" fn smtp_send_raw(
         return riot_wrappers::error::EINVAL.number() as _;
     };
 
+    if core::mem::transmute_copy::<_, *const ffi::c_void>(session).is_null() {
+        return -(riot_sys::ENOTCONN as ffi::c_int);
+    }
+
     let Some(envelope) = envelope.as_ref() else {
         return riot_wrappers::error::EINVAL.number() as _;
     };
@@ -225,6 +247,7 @@ pub unsafe extern "C" fn smtp_send_raw(
             .iter()
             .filter_map(|s| ffi_to_str(*s).and_then(Result::ok)),
     };
+
     let Some(data) = ffi_to_str(data).and_then(Result::ok) else {
         return riot_wrappers::error::EINVAL.number() as _;
     };

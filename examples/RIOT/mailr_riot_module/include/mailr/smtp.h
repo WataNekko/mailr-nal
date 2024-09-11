@@ -7,6 +7,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#define SMTP_SESSION_UNCONNECTED {0}
+
 typedef struct smtp_ehlo_info_t {
     uint8_t extensions;
 } smtp_ehlo_info_t;
