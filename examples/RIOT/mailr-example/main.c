@@ -50,8 +50,9 @@ int set_remote_ep(netif_t *netif, sock_tcp_ep_t *remote)
 
 int main(void)
 {
-    netif_t *netif = netif_iter(NULL);
+    int res;
 
+    netif_t *netif = netif_iter(NULL);
     sock_tcp_ep_t remote = SOCK_IPV6_EP_ANY;
 
     if (add_local_ipv6_addr(netif) != 0) {
@@ -62,6 +63,7 @@ int main(void)
         return 1;
     }
 
+    smtp_session_t session;
     sock_tcp_t sock;
     uint8_t buffer[BUFFER_SIZE];
 
@@ -69,13 +71,21 @@ int main(void)
     ipv6_addr_print((ipv6_addr_t *)&remote.addr);
     printf("]:%d through netif %d\n", remote.port, remote.netif);
 
-    int res = smtp_hello_world(&sock, &remote);
+    res = smtp_connect(&session, &sock, buffer, BUFFER_SIZE, &remote);
     if (res < 0) {
         printf("Connect failed with error %d", res);
         return 1;
     }
 
     puts("Email sent");
+
+    res = smtp_close(&session);
+    if (res < 0) {
+        printf("Error occurred while closing %d", res);
+        return 1;
+    }
+
+    puts("SMTP session successfully terminated.");
 
     return 0;
 }
